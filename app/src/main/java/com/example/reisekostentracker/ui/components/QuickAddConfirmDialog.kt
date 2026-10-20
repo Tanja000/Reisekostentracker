@@ -1,5 +1,6 @@
 package com.example.reisekostentracker.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -66,13 +70,26 @@ fun QuickAddConfirmDialog(
     preset: QuickAddPreset,
     currentLocationName: String?,
     onDismiss: () -> Unit,
-    onConfirm: (amount: Double, paymentMethod: String) -> Unit
+    onConfirm: (amount: Double, paymentMethod: String, location: String) -> Unit
 ) {
     var amountText by remember {
         mutableStateOf(String.format(Locale.GERMAN, "%.2f", preset.defaultAmount))
     }
     var paymentMethod by remember { mutableStateOf(preset.defaultPaymentMethod) }
+    var locationText by remember {
+        mutableStateOf(
+            if (!currentLocationName.isNullOrBlank() && !currentLocationName.contains("fehlt") && !currentLocationName.contains("ermittelt")) {
+                currentLocationName
+            } else {
+                "Karlsruhe"
+            }
+        )
+    }
     var isError by remember { mutableStateOf(false) }
+
+    val quickCities = remember {
+        listOf("Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -106,13 +123,14 @@ fun QuickAddConfirmDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Betrag anpassen und direkt verbuchen:",
+                    text = "Betrag & Ort anpassen und verbuchen:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
+                // Betrag Feld
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = {
@@ -130,14 +148,68 @@ fun QuickAddConfirmDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
+                // Ort Feld (anpassbar mit Geocoding)
+                OutlinedTextField(
+                    value = locationText,
+                    onValueChange = { locationText = it },
+                    label = { Text("Ort / Stadt (wird auf Karte platziert)") },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Schnellauswahl beliebter Orte
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (!currentLocationName.isNullOrBlank() && !currentLocationName.contains("fehlt") && !currentLocationName.contains("ermittelt")) {
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.clickable { locationText = currentLocationName }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Mein GPS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    items(quickCities) { city ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (locationText.equals(city, ignoreCase = true)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.clickable { locationText = city }
+                        ) {
+                            Text(
+                                text = city,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (locationText.equals(city, ignoreCase = true)) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Zahlungsart
                 Text(
                     text = "Zahlungsmethode",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -150,33 +222,6 @@ fun QuickAddConfirmDialog(
                         )
                     }
                 }
-
-                if (!currentLocationName.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = currentLocationName,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
             }
         },
         confirmButton = {
@@ -184,7 +229,8 @@ fun QuickAddConfirmDialog(
                 onClick = {
                     val parsed = amountText.replace(",", ".").toDoubleOrNull()
                     if (parsed != null && parsed > 0.0) {
-                        onConfirm(parsed, paymentMethod)
+                        val loc = locationText.ifBlank { "Karlsruhe" }
+                        onConfirm(parsed, paymentMethod, loc)
                     } else {
                         isError = true
                     }

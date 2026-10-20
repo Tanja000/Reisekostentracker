@@ -866,6 +866,57 @@
     </div>
   </div>
 
+  <!-- Quick Add Customization Modal -->
+  <div class="modal-overlay" id="quickAddModal">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="quickModalIcon" style="font-size:22px;">⚡</span>
+          <span id="quickModalTitle" style="font-weight:800; font-size:16px;">Schnellbuchung</span>
+        </div>
+        <button class="icon-btn" onclick="closeModal('quickAddModal')">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <form onsubmit="handleConfirmQuickAdd(event)">
+        <input type="hidden" id="quickCategoryId">
+        <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)">Betrag in € *</label>
+        <input type="number" step="0.01" id="quickAmount" class="text-input" style="font-size:20px; font-weight:800; color:var(--primary);" required>
+
+        <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)">Ort / Stadt (wird auf Karte platziert)</label>
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="text" id="quickLocation" class="text-input" style="margin-bottom:0;" placeholder="z.B. Karlsruhe, München, Berlin...">
+          <button type="button" class="btn btn-secondary" style="flex:0 0 44px; padding:0; display:flex; align-items:center; justify-content:center;" onclick="detectGpsForQuickAdd()" title="Aktueller GPS-Standort">
+            <span class="material-symbols-rounded" style="color:var(--primary)">my_location</span>
+          </button>
+        </div>
+
+        <!-- Quick Cities Chips -->
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:12px;">
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Karlsruhe'">Karlsruhe</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='München'">München</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Berlin'">Berlin</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Hamburg'">Hamburg</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Köln'">Köln</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Frankfurt'">Frankfurt</span>
+          <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Stuttgart'">Stuttgart</span>
+        </div>
+
+        <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)">Zahlungsmethode</label>
+        <select id="quickPayment" class="select-input">
+          <option value="Karte">Karte / Card</option>
+          <option value="Bar">Bar / Cash</option>
+          <option value="Online">Online / PayPal</option>
+        </select>
+
+        <div class="btn-group" style="margin-top:16px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('quickAddModal')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary" style="font-weight:800;">✓ Buchen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="categoryModal">
     <div class="modal-sheet">
       <div class="modal-title">
@@ -1403,7 +1454,44 @@
             ${filtered.length} ${t('entries')}
           </div>
         </div>
-        <div style="font-size:13px; font-weight:700; color:var(--outline); margin:14px 4px 8px;">${t('recentBookings')}</div>
+
+        <!-- Quick Add Horizontal Leiste -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 4px 6px;">
+          <div style="font-size:12.5px; font-weight:800; color:var(--primary);">⚡ ${currentLang === 'en' ? 'Quick Booking' : 'Schnellbuchung'}</div>
+          <div style="font-size:11px; color:var(--outline);">${currentLang === 'en' ? 'Click to customize' : 'Klick zum Anpassen'}</div>
+        </div>
+        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px;">
+          <div class="quick-btn" style="padding:8px 12px; border-radius:12px; display:flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer;" onclick="openQuickAddModal('Kaffee & Snack', 3.80, 'cat_gastronomie', 'Bar', '☕')">
+            <span style="font-size:18px;">☕</span>
+            <div>
+              <div style="font-size:12px; font-weight:800;">${currentLang === 'en' ? 'Coffee & Snack' : 'Kaffee & Snack'}</div>
+              <div style="font-size:10.5px; color:var(--primary); font-weight:800;">3,80 €</div>
+            </div>
+          </div>
+          <div class="quick-btn" style="padding:8px 12px; border-radius:12px; display:flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer;" onclick="openQuickAddModal('Mittagessen', 12.50, 'cat_gastronomie', 'Karte', '🥗')">
+            <span style="font-size:18px;">🥗</span>
+            <div>
+              <div style="font-size:12px; font-weight:800;">${currentLang === 'en' ? 'Lunch' : 'Mittagessen'}</div>
+              <div style="font-size:10.5px; color:var(--primary); font-weight:800;">12,50 €</div>
+            </div>
+          </div>
+          <div class="quick-btn" style="padding:8px 12px; border-radius:12px; display:flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer;" onclick="openQuickAddModal('Supermarkt', 35.00, 'cat_lebensmittel', 'Karte', '🛒')">
+            <span style="font-size:18px;">🛒</span>
+            <div>
+              <div style="font-size:12px; font-weight:800;">${currentLang === 'en' ? 'Groceries' : 'Supermarkt'}</div>
+              <div style="font-size:10.5px; color:var(--primary); font-weight:800;">35,00 €</div>
+            </div>
+          </div>
+          <div class="quick-btn" style="padding:8px 12px; border-radius:12px; display:flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer;" onclick="openQuickAddModal('Tanken / Ticket', 25.00, 'cat_transport', 'Karte', '⛽')">
+            <span style="font-size:18px;">⛽</span>
+            <div>
+              <div style="font-size:12px; font-weight:800;">${currentLang === 'en' ? 'Transit / Fuel' : 'Tanken / Ticket'}</div>
+              <div style="font-size:10.5px; color:var(--primary); font-weight:800;">25,00 €</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:13px; font-weight:700; color:var(--outline); margin:8px 4px 8px;">${t('recentBookings')}</div>
       `;
       if (filtered.length === 0) {
         html += `
@@ -1801,32 +1889,32 @@
         </div>
         <div style="font-size:13px; font-weight:700; color:var(--outline); margin-bottom:4px;">${t('quickAddTitle')}</div>
         <div class="quick-grid">
-          <div class="quick-btn" onclick="quickAddExpense('Espresso & Snack', 4.80, 'cat_gastronomie')">
-            <span style="font-size:22px;">\u2615</span>
+          <div class="quick-btn" onclick="openQuickAddModal('Kaffee & Snack', 3.80, 'cat_gastronomie', 'Bar', '☕')">
+            <span style="font-size:22px;">☕</span>
             <div>
               <div style="font-size:12.5px; font-weight:800;">${t('quickCoffee')}</div>
-              <div style="font-size:11px; color:var(--outline); font-weight:600;">4,80 \u2022 Caf\u00E9</div>
+              <div style="font-size:11px; color:var(--outline); font-weight:600;">3,80 € • Café</div>
             </div>
           </div>
-          <div class="quick-btn" onclick="quickAddExpense('Mittagsmen\u00FC', 12.50, 'cat_gastronomie')">
-            <span style="font-size:22px;">\uD83E\uDD57</span>
+          <div class="quick-btn" onclick="openQuickAddModal('Mittagessen', 12.50, 'cat_gastronomie', 'Karte', '🥗')">
+            <span style="font-size:22px;">🥗</span>
             <div>
               <div style="font-size:12.5px; font-weight:800;">${t('quickLunch')}</div>
-              <div style="font-size:11px; color:var(--outline); font-weight:600;">12,50 \u2022 Lunch</div>
+              <div style="font-size:11px; color:var(--outline); font-weight:600;">12,50 € • Lunch</div>
             </div>
           </div>
-          <div class="quick-btn" onclick="quickAddExpense('Supermarkt Einkauf', 35.00, 'cat_lebensmittel')">
-            <span style="font-size:22px;">\uD83D\uDED2</span>
+          <div class="quick-btn" onclick="openQuickAddModal('Supermarkt', 35.00, 'cat_lebensmittel', 'Karte', '🛒')">
+            <span style="font-size:22px;">🛒</span>
             <div>
               <div style="font-size:12.5px; font-weight:800;">${t('quickGroceries')}</div>
-              <div style="font-size:11px; color:var(--outline); font-weight:600;">35,00 \u2022 Groceries</div>
+              <div style="font-size:11px; color:var(--outline); font-weight:600;">35,00 € • Groceries</div>
             </div>
           </div>
-          <div class="quick-btn" onclick="quickAddExpense('Mobilit\u00E4t & Transit', 25.00, 'cat_transport')">
-            <span style="font-size:22px;">\u26FD</span>
+          <div class="quick-btn" onclick="openQuickAddModal('Tanken / Ticket', 25.00, 'cat_transport', 'Karte', '⛽')">
+            <span style="font-size:22px;">⛽</span>
             <div>
               <div style="font-size:12.5px; font-weight:800;">${t('quickMobility')}</div>
-              <div style="font-size:11px; color:var(--outline); font-weight:600;">25,00 \u2022 Transit</div>
+              <div style="font-size:11px; color:var(--outline); font-weight:600;">25,00 € • Transit</div>
             </div>
           </div>
         </div>
@@ -1840,24 +1928,140 @@
       container.innerHTML = html;
     }
 
-    function quickAddExpense(title, amount, categoryId) {
-      const today = new Date().toISOString().split('T')[0];
-      const newExp = {
-        id: "exp_" + Date.now(),
-        title: title,
-        amount: amount,
-        categoryId: categoryId,
-        date: today,
-        paymentMethod: "Karte",
-        notes: "1-Klick Schnell-Buchung",
-        location: "M\u00FCnchen",
-        lat: 48.1371 + (Math.random() - 0.5) * 0.02,
-        lng: 11.5754 + (Math.random() - 0.5) * 0.02
-      };
-      expenses.unshift(newExp);
-      saveState();
-      renderScreen();
-      alert(`+ ${formatCurrency(amount)}: "${title}"`);
+    // --- ORTS-BIBLIOTHEK & GEOCODING (Alle Städte mit echten Koordinaten) ---
+    const GEO_PLACE_LIBRARY = {
+      "karlsruhe": { name: "Karlsruhe", lat: 49.0069, lng: 8.4037 },
+      "münchen": { name: "München", lat: 48.1371, lng: 11.5754 },
+      "munchen": { name: "München", lat: 48.1371, lng: 11.5754 },
+      "berlin": { name: "Berlin", lat: 52.5200, lng: 13.4050 },
+      "hamburg": { name: "Hamburg", lat: 53.5511, lng: 9.9937 },
+      "köln": { name: "Köln", lat: 50.9375, lng: 6.9603 },
+      "koln": { name: "Köln", lat: 50.9375, lng: 6.9603 },
+      "frankfurt": { name: "Frankfurt am Main", lat: 50.1109, lng: 8.6821 },
+      "stuttgart": { name: "Stuttgart", lat: 48.7758, lng: 9.1829 },
+      "düsseldorf": { name: "Düsseldorf", lat: 51.2277, lng: 6.7735 },
+      "dusseldorf": { name: "Düsseldorf", lat: 51.2277, lng: 6.7735 },
+      "leipzig": { name: "Leipzig", lat: 51.3397, lng: 12.3731 },
+      "dresden": { name: "Dresden", lat: 51.0504, lng: 13.7373 },
+      "nürnberg": { name: "Nürnberg", lat: 49.4521, lng: 11.0767 },
+      "nurnberg": { name: "Nürnberg", lat: 49.4521, lng: 11.0767 },
+      "bremen": { name: "Bremen", lat: 53.0793, lng: 8.8017 },
+      "hannover": { name: "Hannover", lat: 52.3759, lng: 9.7320 },
+      "heidelberg": { name: "Heidelberg", lat: 49.3988, lng: 8.6724 },
+      "freiburg": { name: "Freiburg im Breisgau", lat: 47.9990, lng: 7.8421 },
+      "ulm": { name: "Ulm", lat: 48.4011, lng: 9.9876 },
+      "augsburg": { name: "Augsburg", lat: 48.3705, lng: 10.8978 },
+      "potsdam": { name: "Potsdam", lat: 52.3906, lng: 13.0645 },
+      "wien": { name: "Wien", lat: 48.2082, lng: 16.3738 },
+      "zürich": { name: "Zürich", lat: 47.3769, lng: 8.5417 },
+      "zurich": { name: "Zürich", lat: 47.3769, lng: 8.5417 },
+      "paris": { name: "Paris", lat: 48.8566, lng: 2.3522 },
+      "london": { name: "London", lat: 51.5074, lng: -0.1278 },
+      "rom": { name: "Rom", lat: 41.9028, lng: 12.4964 },
+      "mailand": { name: "Mailand", lat: 45.4642, lng: 9.1900 },
+      "barcelona": { name: "Barcelona", lat: 41.3851, lng: 2.1734 }
+    };
+
+    function resolveGeoLocation(name, callback) {
+      if (!name || !name.trim()) {
+        callback({ name: "Karlsruhe", lat: 49.0069, lng: 8.4037 });
+        return;
+      }
+      const clean = name.trim().toLowerCase();
+      for (const key in GEO_PLACE_LIBRARY) {
+        if (clean.includes(key) || key.includes(clean)) {
+          const match = GEO_PLACE_LIBRARY[key];
+          callback({ name: name.trim(), lat: match.lat, lng: match.lng });
+          return;
+        }
+      }
+      // Online OpenStreetMap Geocoder Fallback for any custom address or city
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            callback({
+              name: name.trim(),
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon)
+            });
+          } else {
+            const h = Math.abs(name.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0));
+            callback({ name: name.trim(), lat: 49.0069 + ((h % 100) / 100 - 0.5) * 0.1, lng: 8.4037 + (((h / 100) % 100) / 100 - 0.5) * 0.1 });
+          }
+        })
+        .catch(() => {
+          const h = Math.abs(name.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0));
+          callback({ name: name.trim(), lat: 49.0069 + ((h % 100) / 100 - 0.5) * 0.1, lng: 8.4037 + (((h / 100) % 100) / 100 - 0.5) * 0.1 });
+        });
+    }
+
+    let activeQuickAddPreset = null;
+    let currentGpsCity = "Karlsruhe";
+
+    function openQuickAddModal(title, defaultAmount, categoryId, defaultPayment, icon) {
+      activeQuickAddPreset = { title, defaultAmount, categoryId, defaultPayment, icon };
+      const titleEl = document.getElementById('quickModalTitle');
+      const iconEl = document.getElementById('quickModalIcon');
+      if (titleEl) titleEl.innerText = title;
+      if (iconEl) iconEl.innerText = icon || '⚡';
+      document.getElementById('quickAmount').value = defaultAmount.toFixed(2);
+      document.getElementById('quickCategoryId').value = categoryId;
+      document.getElementById('quickPayment').value = defaultPayment || 'Karte';
+      document.getElementById('quickLocation').value = currentGpsCity || "Karlsruhe";
+      document.getElementById('quickAddModal').classList.add('active');
+    }
+
+    function handleConfirmQuickAdd(e) {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('quickAmount').value);
+      const locName = document.getElementById('quickLocation').value.trim() || "Karlsruhe";
+      const paymentMethod = document.getElementById('quickPayment').value;
+      const catId = document.getElementById('quickCategoryId').value || (activeQuickAddPreset ? activeQuickAddPreset.categoryId : 'cat_gastronomie');
+      const title = activeQuickAddPreset ? activeQuickAddPreset.title : "Schnellbuchung";
+      
+      resolveGeoLocation(locName, (resolved) => {
+        const today = new Date().toISOString().split('T')[0];
+        const newExp = {
+          id: "exp_" + Date.now(),
+          title: title,
+          amount: amount,
+          categoryId: catId,
+          date: today,
+          paymentMethod: paymentMethod,
+          notes: "⚡ Schnellbuchung",
+          location: resolved.name,
+          lat: resolved.lat,
+          lng: resolved.lng
+        };
+        expenses.unshift(newExp);
+        saveState();
+        closeModal('quickAddModal');
+        renderScreen();
+      });
+    }
+
+    function detectGpsForQuickAdd() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(r => r.json())
+            .then(d => {
+              const name = d.address ? (d.address.city || d.address.town || d.address.suburb || "Mein Standort") : "Mein Standort";
+              document.getElementById('quickLocation').value = name;
+              currentGpsCoords = { lat, lng };
+              currentGpsCity = name;
+            })
+            .catch(() => {
+              document.getElementById('quickLocation').value = `GPS (${lat.toFixed(2)}, ${lng.toFixed(2)})`;
+              currentGpsCoords = { lat, lng };
+            });
+        }, () => {
+          document.getElementById('quickLocation').value = "Karlsruhe";
+        });
+      }
     }
 
     function exportToCsv() {
@@ -1934,16 +2138,24 @@
       const date = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
       const paymentMethod = document.getElementById("expPayment").value;
       const notes = document.getElementById("expNotes").value.trim();
-      let lat = currentGpsCoords ? currentGpsCoords.lat : (48.1371 + (Math.random() - 0.5) * 0.05);
-      let lng = currentGpsCoords ? currentGpsCoords.lng : (11.5754 + (Math.random() - 0.5) * 0.05);
-      expenses.unshift({
-        id: "exp_" + Date.now(),
-        title, amount, categoryId: selectedCatInModal || categories[0].id, date, paymentMethod, notes,
-        location: location || "M\u00FCnchen", lat, lng
+      
+      resolveGeoLocation(location || (currentGpsCoords ? "Mein Standort" : "Karlsruhe"), (resolved) => {
+        expenses.unshift({
+          id: "exp_" + Date.now(),
+          title,
+          amount,
+          categoryId: selectedCatInModal || categories[0].id,
+          date,
+          paymentMethod,
+          notes,
+          location: location || resolved.name,
+          lat: currentGpsCoords && !location ? currentGpsCoords.lat : resolved.lat,
+          lng: currentGpsCoords && !location ? currentGpsCoords.lng : resolved.lng
+        });
+        saveState();
+        closeModal('expenseModal');
+        renderScreen();
       });
-      saveState();
-      closeModal('expenseModal');
-      renderScreen();
     }
 
     function deleteExpense(id) {

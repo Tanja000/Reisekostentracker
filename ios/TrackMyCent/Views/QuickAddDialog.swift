@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct QuickAddDialog: View {
     @ObservedObject var store: ExpenseStore
@@ -6,13 +7,17 @@ struct QuickAddDialog: View {
     let onDismiss: () -> Void
     
     @State private var amountText: String = ""
+    @State private var locationText: String = "Karlsruhe"
     @State private var paymentMethod: String = "Karte"
+    
+    private let quickCities = ["Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich"]
     
     init(store: ExpenseStore, preset: QuickAddPreset, onDismiss: @escaping () -> Void) {
         self.store = store
         self.preset = preset
         self.onDismiss = onDismiss
         _amountText = State(initialValue: String(format: "%.2f", preset.defaultAmount).replacingOccurrences(of: ".", with: ","))
+        _locationText = State(initialValue: store.currentCity.isEmpty ? "Karlsruhe" : store.currentCity)
         _paymentMethod = State(initialValue: preset.defaultPaymentMethod)
     }
     
@@ -21,7 +26,7 @@ struct QuickAddDialog: View {
             Color.black.opacity(0.4).ignoresSafeArea()
                 .onTapGesture { onDismiss() }
             
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 // Header
                 HStack(spacing: 12) {
                     Image(systemName: preset.iconName)
@@ -45,14 +50,14 @@ struct QuickAddDialog: View {
                 Divider()
                 
                 // Amount Input
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(store.isEnglish ? "Amount" : "Betrag")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
                     HStack {
                         TextField("0,00", text: $amountText)
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 26, weight: .bold))
                             .keyboardType(.decimalPad)
                         
                         Text(store.isEnglish ? "$" : "€")
@@ -60,13 +65,49 @@ struct QuickAddDialog: View {
                             .bold()
                             .foregroundColor(.secondary)
                     }
-                    .padding(10)
+                    .padding(8)
                     .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(10)
                 }
                 
+                // Location Input (Editable + Geocoding Library)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(store.isEnglish ? "Location / City (places pin on map)" : "Ort / Stadt (wird auf Karte platziert)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.blue)
+                            .font(.subheadline)
+                        TextField(store.isEnglish ? "e.g. Berlin, Munich..." : "z.B. Berlin, München...", text: $locationText)
+                            .font(.subheadline)
+                    }
+                    .padding(8)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(10)
+                    
+                    // Quick city chips
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(quickCities, id: \.self) { city in
+                                Button(action: { locationText = city }) {
+                                    Text(city)
+                                        .font(.caption2)
+                                        .bold()
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(locationText == city ? Color.blue : Color(UIColor.systemGray5))
+                                        .foregroundColor(locationText == city ? .white : .primary)
+                                        .cornerRadius(8)
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Payment Method Picker
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(store.isEnglish ? "Payment Method" : "Zahlungsart")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -77,18 +118,6 @@ struct QuickAddDialog: View {
                         Text("Online").tag("Online")
                     }
                     .pickerStyle(.segmented)
-                }
-                
-                // Location info
-                HStack(spacing: 6) {
-                    Image(systemName: "location.fill")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text(store.currentCity)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                    Spacer()
                 }
                 
                 // Action Buttons
@@ -103,7 +132,7 @@ struct QuickAddDialog: View {
                     }
                     
                     Button(action: confirmBooking) {
-                        Text(store.isEnglish ? "Book Now" : "Buchen")
+                        Text(store.isEnglish ? "✓ Book Now" : "✓ Buchen")
                             .bold()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -117,25 +146,31 @@ struct QuickAddDialog: View {
             .background(Color(UIColor.systemBackground))
             .cornerRadius(18)
             .shadow(radius: 20)
-            .padding(.horizontal, 28)
+            .padding(.horizontal, 24)
         }
     }
     
     private func confirmBooking() {
         let clean = amountText.replacingOccurrences(of: ",", with: ".")
         let amount = Double(clean) ?? preset.defaultAmount
-        let exp = Expense(
-            title: preset.title(isEnglish: store.isEnglish),
-            amount: amount,
-            categoryId: preset.categoryId,
-            date: Date(),
-            paymentMethod: paymentMethod,
-            locationName: store.currentCity,
-            latitude: store.currentCoordinate.latitude,
-            longitude: store.currentCoordinate.longitude,
-            notes: ""
-        )
-        store.addExpense(exp)
-        onDismiss()
+        let locName = locationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Karlsruhe" : locationText
+        
+        store.resolveLocation(name: locName) { coord in
+            DispatchQueue.main.async {
+                let exp = Expense(
+                    title: preset.title(isEnglish: store.isEnglish),
+                    amount: amount,
+                    categoryId: preset.categoryId,
+                    date: Date(),
+                    paymentMethod: paymentMethod,
+                    locationName: locName,
+                    latitude: coord.latitude,
+                    longitude: coord.longitude,
+                    notes: "⚡ Schnellbuchung"
+                )
+                store.addExpense(exp)
+                onDismiss()
+            }
+        }
     }
 }

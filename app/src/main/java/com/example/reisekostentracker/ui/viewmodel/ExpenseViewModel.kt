@@ -15,6 +15,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reisekostentracker.data.ExpenseRepository
+import com.example.reisekostentracker.data.GeoPlace
+import com.example.reisekostentracker.data.GeoPlaceLibrary
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
 import com.example.reisekostentracker.model.ExpenseStatistics
@@ -194,26 +196,39 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         title: String,
         amount: Double,
         categoryId: String,
-        paymentMethod: String
+        paymentMethod: String,
+        customLocation: String? = null
     ) {
-        val loc = _lastKnownLocation.value
-        val lat = loc?.latitude ?: (48.1371 + (Math.random() - 0.5) * 0.04)
-        val lng = loc?.longitude ?: (11.5754 + (Math.random() - 0.5) * 0.04)
-        val locName = _lastLocationName.value ?: if (loc != null) "GPS (${String.format(Locale.US, "%.2f, %.2f", lat, lng)})" else "Standort"
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val resolvedPlace = if (!customLocation.isNullOrBlank()) {
+                GeoPlaceLibrary.resolveLocation(customLocation, app)
+            } else {
+                val loc = _lastKnownLocation.value
+                val locName = _lastLocationName.value
+                if (loc != null) {
+                    GeoPlace(locName ?: "Aktueller Standort", loc.latitude, loc.longitude)
+                } else if (!locName.isNullOrBlank() && !locName.contains("fehlt") && !locName.contains("ermittelt")) {
+                    GeoPlaceLibrary.resolveLocation(locName, app)
+                } else {
+                    GeoPlaceLibrary.resolveLocation("Karlsruhe", app)
+                }
+            }
 
-        repository.addExpense(
-            title = title,
-            amount = amount,
-            currency = "EUR",
-            categoryId = categoryId,
-            tripId = null,
-            date = System.currentTimeMillis(),
-            notes = "Schnellbuchung",
-            paymentMethod = paymentMethod,
-            latitude = lat,
-            longitude = lng,
-            locationName = locName
-        )
+            repository.addExpense(
+                title = title,
+                amount = amount,
+                currency = "EUR",
+                categoryId = categoryId,
+                tripId = null,
+                date = System.currentTimeMillis(),
+                notes = "Schnellbuchung",
+                paymentMethod = paymentMethod,
+                latitude = resolvedPlace.latitude,
+                longitude = resolvedPlace.longitude,
+                locationName = resolvedPlace.name
+            )
+        }
     }
 
     // Chart Scope
@@ -271,14 +286,14 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
             matchCategory && matchQuery && matchTime
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val statistics: StateFlow<ExpenseStatistics> = combine(
         filteredExpenses,
         categories
     ) { curExpenses, curCategories ->
         ExpenseStatistics.calculate(curExpenses, curCategories)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExpenseStatistics.empty())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ExpenseStatistics.empty())
 
     fun toggleDarkTheme() {
         val newVal = !_isDarkTheme.value
@@ -364,15 +379,36 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         longitude: Double? = null,
         locationName: String? = null
     ) {
-        val current = editingExpense.value
-        val loc = _lastKnownLocation.value
-        val finalLat = latitude ?: current?.latitude ?: loc?.latitude ?: (48.1371 + (Math.random() - 0.5) * 0.04)
-        val finalLng = longitude ?: current?.longitude ?: loc?.longitude ?: (11.5754 + (Math.random() - 0.5) * 0.04)
-        val finalLocName = locationName ?: current?.locationName ?: _lastLocationName.value ?: if (loc != null) "GPS (${String.format(java.util.Locale.US, "%.2f, %.2f", finalLat, finalLng)})" else "Standort"
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val current = editingExpense.value
+            val enteredName = locationName?.trim()?.ifEmpty { null }
+            val rawName = enteredName ?: current?.locationName ?: _lastLocationName.value ?: "Karlsruhe"
 
-        if (current != null) {
-            repository.updateExpense(
-                current.copy(
+            val resolved = if (latitude != null && longitude != null) {
+                GeoPlace(rawName, latitude, longitude)
+            } else {
+                GeoPlaceLibrary.resolveLocation(rawName, app)
+            }
+
+            if (current != null) {
+                repository.updateExpense(
+                    current.copy(
+                        title = title,
+                        amount = amount,
+                        currency = currency,
+                        categoryId = categoryId,
+                        tripId = tripId,
+                        date = date,
+                        notes = notes,
+                        paymentMethod = paymentMethod,
+                        latitude = resolved.latitude,
+                        longitude = resolved.longitude,
+                        locationName = resolved.name
+                    )
+                )
+            } else {
+                repository.addExpense(
                     title = title,
                     amount = amount,
                     currency = currency,
@@ -381,27 +417,13 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                     date = date,
                     notes = notes,
                     paymentMethod = paymentMethod,
-                    latitude = finalLat,
-                    longitude = finalLng,
-                    locationName = finalLocName
+                    latitude = resolved.latitude,
+                    longitude = resolved.longitude,
+                    locationName = resolved.name
                 )
-            )
-        } else {
-            repository.addExpense(
-                title = title,
-                amount = amount,
-                currency = currency,
-                categoryId = categoryId,
-                tripId = tripId,
-                date = date,
-                notes = notes,
-                paymentMethod = paymentMethod,
-                latitude = finalLat,
-                longitude = finalLng,
-                locationName = finalLocName
-            )
+            }
+            closeExpenseDialog()
         }
-        closeExpenseDialog()
     }
 
     fun deleteExpense(id: String) {

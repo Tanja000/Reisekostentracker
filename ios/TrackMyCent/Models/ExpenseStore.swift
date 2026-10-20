@@ -46,6 +46,37 @@ class ExpenseStore: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
     
+    private let cityCoordinates: [String: CLLocationCoordinate2D] = [
+        "karlsruhe": CLLocationCoordinate2D(latitude: 49.0069, longitude: 8.4037),
+        "münchen": CLLocationCoordinate2D(latitude: 48.1371, longitude: 11.5754),
+        "munchen": CLLocationCoordinate2D(latitude: 48.1371, longitude: 11.5754),
+        "berlin": CLLocationCoordinate2D(latitude: 52.5200, longitude: 13.4050),
+        "hamburg": CLLocationCoordinate2D(latitude: 53.5511, longitude: 9.9937),
+        "köln": CLLocationCoordinate2D(latitude: 50.9375, longitude: 6.9603),
+        "koln": CLLocationCoordinate2D(latitude: 50.9375, longitude: 6.9603),
+        "frankfurt": CLLocationCoordinate2D(latitude: 50.1109, longitude: 8.6821),
+        "stuttgart": CLLocationCoordinate2D(latitude: 48.7758, longitude: 9.1829),
+        "wien": CLLocationCoordinate2D(latitude: 48.2082, longitude: 16.3738),
+        "zürich": CLLocationCoordinate2D(latitude: 47.3769, longitude: 8.5417)
+    ]
+    
+    func resolveLocation(name: String, completion: @escaping (CLLocationCoordinate2D) -> Void) {
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        for (key, coord) in cityCoordinates {
+            if clean.contains(key) || key.contains(clean) {
+                completion(coord)
+                return
+            }
+        }
+        geocoder.geocodeAddressString(name) { placemarks, _ in
+            if let loc = placemarks?.first?.location {
+                completion(loc.coordinate)
+            } else {
+                completion(self.currentCoordinate)
+            }
+        }
+    }
+    
     func addExpense(_ expense: Expense) {
         expenses.insert(expense, at: 0)
     }

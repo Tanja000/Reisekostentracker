@@ -427,16 +427,17 @@ fun ExpensesScreen(
             preset = preset,
             currentLocationName = lastLocationName,
             onDismiss = { activeQuickAdd = null },
-            onConfirm = { amount, method ->
+            onConfirm = { amount, method, location ->
                 viewModel.quickAddExpense(
                     title = preset.title,
                     amount = amount,
                     categoryId = preset.categoryId,
-                    paymentMethod = method
+                    paymentMethod = method,
+                    customLocation = location
                 )
                 Toast.makeText(
                     context,
-                    "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} €)",
+                    "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} € in $location)",
                     Toast.LENGTH_SHORT
                 ).show()
                 activeQuickAdd = null
