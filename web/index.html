@@ -1516,7 +1516,7 @@
         html += filtered.map(exp => {
           const cat = getCategory(exp.categoryId);
           return `
-            <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;">
+            <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer;" onclick="openAddExpenseModal(expenses.find(e => e.id === '${exp.id}'))">
               <div class="stat-icon" style="width:42px; height:42px; background:${cat.color}20; color:${cat.color}; flex-shrink:0;">
                 <span class="material-symbols-rounded">${cat.icon}</span>
               </div>
@@ -1531,7 +1531,7 @@
                     ${exp.location ? ` \u2022 \uD83D\uDCCD <span style="font-weight:600;">${exp.location}</span>` : ''}
                     ${exp.paymentMethod ? ` \u2022 <span style="background:var(--surface-variant); padding:1px 6px; border-radius:4px; font-size:10.5px;">${exp.paymentMethod}</span>` : ''}
                   </div>
-                  <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; flex-shrink:0; margin-left:6px;" onclick="deleteExpense('${exp.id}')">
+                  <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; flex-shrink:0; margin-left:6px;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')">
                     <span class="material-symbols-rounded" style="font-size:16px">delete</span>
                   </button>
                 </div>
@@ -2184,18 +2184,30 @@
     let selectedColorInCatModal = PALETTE[0];
     let selectedIconInCatModal = EXTENDED_ICONS[0];
 
-    function openAddExpenseModal() {
+    function openAddExpenseModal(exp) {
       const titleEl = document.getElementById("modalExpenseTitle");
-      if (titleEl) titleEl.innerText = t("addExpense");
-      document.getElementById("expId").value = "";
-      document.getElementById("expAmount").value = "";
-      document.getElementById("expTitle").value = "";
-      document.getElementById("expLocation").value = "";
-      document.getElementById("expDate").value = new Date().toISOString().split('T')[0];
-      document.getElementById("expNotes").value = "";
-      selectedCatInModal = categories[0].id;
+      if (exp) {
+        if (titleEl) titleEl.innerText = t("editExpense") || "Ausgabe bearbeiten";
+        document.getElementById("expId").value = exp.id;
+        document.getElementById("expAmount").value = exp.amount;
+        document.getElementById("expTitle").value = exp.title;
+        document.getElementById("expLocation").value = exp.location || currentGpsCity || "Karlsruhe";
+        document.getElementById("expDate").value = exp.date || new Date().toISOString().split('T')[0];
+        document.getElementById("expNotes").value = exp.notes || "";
+        document.getElementById("expPayment").value = exp.paymentMethod || "Karte";
+        selectedCatInModal = exp.categoryId || categories[0].id;
+      } else {
+        if (titleEl) titleEl.innerText = t("addExpense");
+        document.getElementById("expId").value = "";
+        document.getElementById("expAmount").value = "";
+        document.getElementById("expTitle").value = "";
+        document.getElementById("expLocation").value = currentGpsCity || "Karlsruhe";
+        document.getElementById("expDate").value = new Date().toISOString().split('T')[0];
+        document.getElementById("expNotes").value = "";
+        selectedCatInModal = categories[0].id;
+      }
       renderModalCategories();
-      if (gpsConsent === "allowed") detectGpsLocation();
+      if (!exp && gpsConsent === "allowed") detectGpsLocation();
       document.getElementById("expenseModal").classList.add("active");
     }
 
@@ -2215,6 +2227,7 @@
 
     function handleSaveExpense(e) {
       e.preventDefault();
+      const expId = document.getElementById("expId").value;
       const amount = parseFloat(document.getElementById("expAmount").value);
       const title = document.getElementById("expTitle").value.trim();
       const location = document.getElementById("expLocation").value.trim() || null;
@@ -2222,19 +2235,37 @@
       const paymentMethod = document.getElementById("expPayment").value;
       const notes = document.getElementById("expNotes").value.trim();
       
-      resolveGeoLocation(location || (currentGpsCoords ? "Mein Standort" : "Karlsruhe"), (resolved) => {
-        expenses.unshift({
-          id: "exp_" + Date.now(),
-          title,
-          amount,
-          categoryId: selectedCatInModal || categories[0].id,
-          date,
-          paymentMethod,
-          notes,
-          location: location || resolved.name,
-          lat: currentGpsCoords && !location ? currentGpsCoords.lat : resolved.lat,
-          lng: currentGpsCoords && !location ? currentGpsCoords.lng : resolved.lng
-        });
+      resolveGeoLocation(location || currentGpsCity || "Karlsruhe", (resolved) => {
+        if (expId) {
+          const idx = expenses.findIndex(x => x.id === expId);
+          if (idx !== -1) {
+            expenses[idx] = {
+              ...expenses[idx],
+              title,
+              amount,
+              categoryId: selectedCatInModal || categories[0].id,
+              date,
+              paymentMethod,
+              notes,
+              location: location || resolved.name,
+              lat: resolved.lat,
+              lng: resolved.lng
+            };
+          }
+        } else {
+          expenses.unshift({
+            id: "exp_" + Date.now(),
+            title,
+            amount,
+            categoryId: selectedCatInModal || categories[0].id,
+            date,
+            paymentMethod,
+            notes,
+            location: location || resolved.name,
+            lat: currentGpsCoords && !location ? currentGpsCoords.lat : resolved.lat,
+            lng: currentGpsCoords && !location ? currentGpsCoords.lng : resolved.lng
+          });
+        }
         saveState();
         closeModal('expenseModal');
         renderScreen();

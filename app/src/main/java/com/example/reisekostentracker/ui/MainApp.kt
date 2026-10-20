@@ -262,13 +262,16 @@ fun MainApp(
 
     // Dialogs
     if (isExpenseDialogOpen) {
+        val lastLocationName by viewModel.lastLocationName.collectAsState()
         AddEditExpenseDialog(
             initialExpense = editingExpense,
             categories = categories,
+            currentLocationName = lastLocationName,
             onDismiss = { viewModel.closeExpenseDialog() },
-            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod ->
+            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName ->
                 viewModel.saveExpense(
-                    title, amount, currency, categoryId, tripId, date, notes, paymentMethod
+                    title, amount, currency, categoryId, tripId, date, notes, paymentMethod,
+                    locationName = locationName
                 )
             }
         )
