@@ -209,6 +209,12 @@ fun MapScreen(
                                     mapLibreMap.setOnMarkerClickListener { marker ->
                                         val match = expensesWithLocation.find { it.title == marker.title }
                                         selectedExpense = match
+                                        mapLibreMap.animateCamera(
+                                            CameraUpdateFactory.newLatLngZoom(
+                                                marker.position,
+                                                14.5
+                                            )
+                                        )
                                         false
                                     }
                                 }
@@ -288,7 +294,17 @@ fun MapScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { selectedExpense = exp },
+                    .clickable {
+                        selectedExpense = exp
+                        if (exp.latitude != null && exp.longitude != null) {
+                            mapLibreInstance?.animateCamera(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    LatLng(exp.latitude, exp.longitude),
+                                    14.5
+                                )
+                            )
+                        }
+                    },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (selectedExpense?.id == exp.id)
