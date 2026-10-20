@@ -42,14 +42,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.reisekostentracker.model.Expense
+import com.example.reisekostentracker.model.ExpenseCategory
 import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
+import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -66,6 +69,7 @@ fun MapScreen(
     viewModel: ExpenseViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val expenses by viewModel.expenses.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
@@ -97,6 +101,7 @@ fun MapScreen(
                     .position(LatLng(exp.latitude!!, exp.longitude!!))
                     .title(exp.title)
                     .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
+                    .icon(createRedCircleIcon(exp.amount, context))
             )
         }
         if (expensesWithLocation.isNotEmpty()) {
@@ -185,6 +190,7 @@ fun MapScreen(
                                                     .position(LatLng(exp.latitude!!, exp.longitude!!))
                                                     .title(exp.title)
                                                     .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
+                                                    .icon(createRedCircleIcon(exp.amount, context))
                                             )
                                         }
                                         if (expensesWithLocation.isNotEmpty()) {
@@ -217,33 +223,13 @@ fun MapScreen(
                                             .position(LatLng(exp.latitude!!, exp.longitude!!))
                                             .title(exp.title)
                                             .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
+                                            .icon(createRedCircleIcon(exp.amount, context))
                                     )
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                            Text("<50€", style = MaterialTheme.typography.labelSmall)
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFFF9800)))
-                            Text("50-150€", style = MaterialTheme.typography.labelSmall)
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
-                            Text(">150€", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
 
                     if (selectedExpense != null) {
                         selectedExpense?.let { exp ->
@@ -316,30 +302,13 @@ fun MapScreen(
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    exp.amount > 150.0 -> Color(0xFFEF4444).copy(alpha = 0.15f)
-                                    exp.amount > 50.0 -> Color(0xFFFF9800).copy(alpha = 0.15f)
-                                    else -> Color(0xFF10B981).copy(alpha = 0.15f)
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = when {
-                                exp.amount > 150.0 -> Color(0xFFEF4444)
-                                exp.amount > 50.0 -> Color(0xFFFF9800)
-                                else -> Color(0xFF10B981)
-                            },
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    val cat = categoryMap[exp.categoryId] ?: ExpenseCategory(
+                        id = exp.categoryId,
+                        name = "Sonstiges",
+                        iconName = "category",
+                        colorValue = 0xFF757575L
+                    )
+                    CategoryIconBadge(category = cat, size = 42)
 
                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -377,4 +346,28 @@ fun MapScreen(
             }
         }
     }
+}
+
+private fun createRedCircleIcon(amount: Double, context: android.content.Context): org.maplibre.android.annotations.Icon {
+    val amt = amount.coerceAtLeast(1.0)
+    // Scale smoothly from 24px to 56px based on square root of amount
+    val size = (20.0 + Math.sqrt(amt) * 2.0).coerceIn(24.0, 56.0).toInt()
+    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+
+    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.argb(210, 239, 68, 68) // red with slight translucency
+        style = android.graphics.Paint.Style.FILL
+    }
+    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 3f
+    }
+
+    val radius = (size / 2f) - 2f
+    canvas.drawCircle(size / 2f, size / 2f, radius, fillPaint)
+    canvas.drawCircle(size / 2f, size / 2f, radius, strokePaint)
+
+    return org.maplibre.android.annotations.IconFactory.getInstance(context).fromBitmap(bitmap)
 }

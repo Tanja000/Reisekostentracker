@@ -36,18 +36,19 @@ struct MapView: View {
             ZStack {
                 Map(coordinateRegion: $region, annotationItems: annotations) { item in
                     MapAnnotation(coordinate: item.coordinate) {
-                        VStack(spacing: 0) {
-                            Text(store.formatCurrency(item.amount))
-                                .font(.caption2)
-                                .bold()
-                                .padding(4)
-                                .background(Color.white)
-                                .cornerRadius(6)
-                                .shadow(radius: 2)
+                        let size = min(54.0, max(24.0, 20.0 + sqrt(max(1.0, item.amount)) * 2.0))
+                        ZStack {
+                            Circle()
+                                .fill(Color.red.opacity(0.85))
+                                .frame(width: size, height: size)
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2.5))
+                                .shadow(color: Color.red.opacity(0.4), radius: 4, x: 0, y: 2)
                             
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.red)
+                            if size >= 28 {
+                                Text("\(Int(round(item.amount)))€")
+                                    .font(.system(size: max(9, min(12, size * 0.35)), weight: .heavy))
+                                    .foregroundColor(.white)
+                            }
                         }
                     }
                 }
