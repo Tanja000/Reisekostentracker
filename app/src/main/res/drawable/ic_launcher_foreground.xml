@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Subtle drop shadow under coin -->
+    <path
+        android:fillColor="#35000000"
+        android:pathData="M54,57m-25,0a25,25 0 1,0 50,0a25,25 0 1,0 -50,0" />
+
+    <!-- Outer Gold Coin -->
+    <path android:pathData="M54,54m-25,0a25,25 0 1,0 50,0a25,25 0 1,0 -50,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="32"
+                android:startY="32"
+                android:endX="76"
+                android:endY="76"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FDE047" />
+                <item android:offset="0.4" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#D97706" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Coin Inner Rim Stroke -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeAlpha="0.45"
+        android:pathData="M54,54m-21,0a21,21 0 1,0 42,0a21,21 0 1,0 -42,0" />
+
+    <!-- Cent Sign Vertical Slash (¢) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,38 L54,70" />
+
+    <!-- Cent Sign 'C' Arc (¢) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:pathData="M61.5,46.5 C59,44 56.5,43 53.5,43 C47,43 42.5,48 42.5,54 C42.5,60 47,65 53.5,65 C56.5,65 59,64 61.5,61.5" />
+
+    <!-- Upward Trend Badge (Fintech Tracker Accent) -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M69,39m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M66,41 L69,37 L72,39.5" />
+
+</vector>
