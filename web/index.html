@@ -1291,8 +1291,14 @@
       if (modified) saveState();
     }
 
-    if (!expenses || expenses.length === 0) seedInitialData();
-    else ensureCoordinatesForExpenses();
+    const hasInitializedExpenses = localStorage.getItem("tmc_has_seeded");
+    if (!hasInitializedExpenses) {
+      seedInitialData();
+      localStorage.setItem("tmc_has_seeded", "true");
+    } else {
+      expenses = JSON.parse(localStorage.getItem("tmc_expenses")) || [];
+      ensureCoordinatesForExpenses();
+    }
 
     if (gpsConsent === null) {
       setTimeout(() => {
@@ -1715,6 +1721,34 @@
           </div>
         `;
       }
+      const topExpenses = expenses.slice().sort((a,b) => Number(b.amount) - Number(a.amount)).slice(0, 5);
+      if (topExpenses.length > 0) {
+        html += `
+          <div style="font-size:13px; font-weight:700; color:var(--outline); margin:16px 0 8px;">Höchste Ausgaben</div>
+        `;
+        html += topExpenses.map(exp => {
+          const cat = getCategory(exp.categoryId);
+          return `
+            <div class="card" style="display:flex; align-items:center; gap:12px; padding:10px 14px; margin-bottom:8px;">
+              <div class="stat-icon" style="width:36px; height:36px; background:${cat.color}20; color:${cat.color}; flex-shrink:0;">
+                <span class="material-symbols-rounded" style="font-size:18px;">${cat.icon}</span>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:13.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
+                  <span style="font-size:14px; font-weight:800; color:#ef4444; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                  <span style="font-size:11px; color:var(--outline);">${cat.name} \u2022 ${formatDate(exp.date)}</span>
+                  <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; margin-left:6px;" onclick="deleteExpense('${exp.id}')" title="Löschen">
+                    <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
       container.innerHTML = html;
     }
 
@@ -1753,7 +1787,12 @@
             <div style="flex:1; min-width:0;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${e.location || e.title}</span>
-                <span style="font-size:14.5px; font-weight:900; color:#ef4444; white-space:nowrap;">${formatCurrency(e.amount)}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-size:14.5px; font-weight:900; color:#ef4444; white-space:nowrap;">${formatCurrency(e.amount)}</span>
+                  <button class="icon-btn" style="width:24px; height:24px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${e.id}')" title="Ausgabe löschen">
+                    <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
+                  </button>
+                </div>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
                 <span style="font-size:11.5px; color:var(--outline); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -1806,7 +1845,12 @@
             <b style="font-size:13px; display:block; margin-bottom:2px; color:var(--on-surface);">${exp.title}</b>
             <div style="font-size:11px; color:var(--outline); margin-bottom:4px;">\uD83D\uDCCD ${exp.location || 'Standort'}</div>
             <div style="font-size:14.5px; font-weight:900; color:#ef4444;">${formatCurrency(exp.amount)}</div>
-            <div style="font-size:10px; color:var(--outline); margin-top:2px;">\uD83D\uDCC5 ${formatDate(exp.date)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <span style="font-size:10px; color:var(--outline);">\uD83D\uDCC5 ${formatDate(exp.date)}</span>
+              <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="deleteExpense('${exp.id}')" title="Löschen">
+                <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
+              </button>
+            </div>
           </div>
         `);
         new maplibregl.Marker({ element: el }).setLngLat([exp.lng, exp.lat]).setPopup(popup).addTo(currentMapInstance);
@@ -1932,6 +1976,31 @@
             </div>
           </div>
         </div>
+        ${monthExpenses.length > 0 ? `
+          <div style="font-size:13px; font-weight:700; color:var(--outline); margin:18px 0 8px;">${t('recentBookings')} (${monthExpenses.length})</div>
+          ${monthExpenses.slice(0, 8).map(exp => {
+            const cat = getCategory(exp.categoryId);
+            return `
+              <div class="card" style="display:flex; align-items:center; gap:12px; padding:10px 14px; margin-bottom:8px;">
+                <div class="stat-icon" style="width:36px; height:36px; background:${cat.color}20; color:${cat.color}; flex-shrink:0;">
+                  <span class="material-symbols-rounded" style="font-size:18px;">${cat.icon}</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:13.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
+                    <span style="font-size:14px; font-weight:800; color:var(--primary); white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                    <span style="font-size:11px; color:var(--outline);">${cat.name} \u2022 ${formatDate(exp.date)}</span>
+                    <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; margin-left:6px;" onclick="deleteExpense('${exp.id}')" title="Löschen">
+                      <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        ` : ''}
         <div style="margin-top:18px;">
           <button class="btn btn-secondary" style="width:100%; padding:12px; font-size:13px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="exportToCsv()">
             <span class="material-symbols-rounded" style="color:#10b981;">file_download</span>

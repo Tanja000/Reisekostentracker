@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fastfood
@@ -31,6 +32,9 @@ import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -79,7 +83,7 @@ fun BudgetsScreen(
     val lastLocationName by viewModel.lastLocationName.collectAsState()
     val context = LocalContext.current
 
-    var monthlyBudget by remember { mutableDoubleStateOf(1500.0) }
+    val monthlyBudget by viewModel.monthlyBudget.collectAsState()
     var isEditBudgetDialogOpen by remember { mutableStateOf(false) }
     var activeQuickAdd by remember { mutableStateOf<QuickAddPreset?>(null) }
 
@@ -401,9 +405,95 @@ fun BudgetsScreen(
             }
         }
 
+        // 4. Buchungen in diesem Monat (mit Löschfunktion)
+        if (thisMonthExpenses.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Ausgaben in diesem Monat",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${thisMonthExpenses.size} Posten",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val dateFormat = SimpleDateFormat("dd. MMM", Locale.GERMAN)
+            val categories by viewModel.categories.collectAsState()
+            val catMap = categories.associateBy { it.id }
+
+            thisMonthExpenses.take(8).forEach { exp ->
+                val cat = catMap[exp.categoryId] ?: ExpenseCategory(
+                    id = exp.categoryId,
+                    name = "Allgemein",
+                    iconName = "category",
+                    colorValue = 0xFF757575L
+                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryIconBadge(category = cat, size = 38)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = exp.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${cat.name} • ${dateFormat.format(Date(exp.date))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        Text(
+                            text = "${currencyFormat.format(exp.amount)} €",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        IconButton(
+                            onClick = { viewModel.deleteExpense(exp.id) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Löschen",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 4. CSV Export Button
+        // 5. CSV Export Button
         OutlinedButton(
             onClick = {
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.GERMAN)
@@ -451,7 +541,7 @@ fun BudgetsScreen(
             },
             confirmButton = {
                 Button(onClick = {
-                    monthlyBudget = budgetText.toDoubleOrNull() ?: monthlyBudget
+                    budgetText.toDoubleOrNull()?.let { viewModel.setMonthlyBudget(it) }
                     isEditBudgetDialogOpen = false
                 }) {
                     Text("Speichern")

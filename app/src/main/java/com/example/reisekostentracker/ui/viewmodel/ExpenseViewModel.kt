@@ -53,6 +53,15 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("dark_mode", false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
+    // Monthly Budget state (persisted across restarts)
+    private val _monthlyBudget = MutableStateFlow(prefs.getFloat("monthly_budget", 1500f).toDouble())
+    val monthlyBudget: StateFlow<Double> = _monthlyBudget.asStateFlow()
+
+    fun setMonthlyBudget(budget: Double) {
+        _monthlyBudget.value = budget
+        prefs.edit().putFloat("monthly_budget", budget.toFloat()).apply()
+    }
+
     // Location permission consent state
     private val _hasLocationConsent = MutableStateFlow(prefs.getBoolean("gps_consent", false))
     val hasLocationConsent: StateFlow<Boolean> = _hasLocationConsent.asStateFlow()
