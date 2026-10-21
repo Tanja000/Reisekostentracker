@@ -379,7 +379,7 @@ fun AiSavingsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surface)
+                                    .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable { hourlyWage = wage }
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
@@ -388,54 +388,49 @@ fun AiSavingsScreen(
                                     text = "${wage.toInt()} €/h",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     val workHoursLost = if (hourlyWage > 0) totalFrustrationAmount / hourlyWage else 0.0
                     val workDaysLost = workHoursLost / 8.0
 
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFDC2626)
-                                )
-                            }
+                        Column {
+                            Text(
+                                text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Text(
+                                text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFDC2626)
+                            )
+                        }
 
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color(0xFFFEE2E2)
-                            ) {
-                                Text(
-                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFDC2626)
-                                )
-                            }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFEE2E2)
+                        ) {
+                            Text(
+                                text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFDC2626)
+                            )
                         }
                     }
                 }
@@ -506,11 +501,11 @@ fun AiSavingsScreen(
                         listOf(25, 50, 100, 200).forEach { amount ->
                             val isSelected = selectedMonthlySavings == amount
                             val bgColor by animateColorAsState(
-                                if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.surface,
+                                if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.surfaceVariant,
                                 label = "chipBg"
                             )
                             val textColor by animateColorAsState(
-                                if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                 label = "chipText"
                             )
 
@@ -558,63 +553,58 @@ fun AiSavingsScreen(
                         }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text(
-                                        text = if (isEn) "In 10 years:" else "In 10 Jahren:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.outline
-                                    )
-                                    Text(
-                                        text = "≈ ${wholeNumberFormat.format(future10)} €",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = if (isEn) "In 25 years:" else "In 25 Jahren:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.outline
-                                    )
-                                    Text(
-                                        text = "≈ ${wholeNumberFormat.format(future25)} €",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF16A34A)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFF0FDF4), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 6.dp)
-                            ) {
+                            Column {
                                 Text(
-                                    text = milestoneReward,
+                                    text = if (isEn) "In 10 years:" else "In 10 Jahren:",
                                     style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Text(
+                                    text = "≈ ${wholeNumberFormat.format(future10)} €",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF15803D)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = if (isEn) "In 25 years:" else "In 25 Jahren:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Text(
+                                    text = "≈ ${wholeNumberFormat.format(future25)} €",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF16A34A)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF15803D).copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = milestoneReward,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF15803D)
+                            )
                         }
                     }
                 }

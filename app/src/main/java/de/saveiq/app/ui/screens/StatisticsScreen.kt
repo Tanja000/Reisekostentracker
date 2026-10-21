@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.ui.screens
+package de.saveiq.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -642,7 +642,7 @@ fun AiFrustrationCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier
@@ -759,7 +759,7 @@ fun WorldBankOpportunityCard(
                         .fillMaxWidth()
                         .padding(vertical = 5.dp),
                     shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier

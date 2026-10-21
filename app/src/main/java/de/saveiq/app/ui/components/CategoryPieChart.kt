@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.ui.components
+package de.saveiq.app.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -144,7 +145,19 @@ fun CategoryPieChart(
                     FilterChip(
                         selected = selectedScope == scope,
                         onClick = { onScopeSelected(scope) },
-                        label = { Text(scope.label(isEn)) }
+                        label = { Text(scope.label(isEn)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.Transparent,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = selectedScope == scope,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            selectedBorderColor = Color.Transparent
+                        )
                     )
                 }
             }
