@@ -45,24 +45,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.PurchaseEmotions
 import java.util.Locale
 
 data class QuickAddPreset(
-    val title: String,
+    val titleDe: String,
+    val titleEn: String,
     val defaultAmount: Double,
     val categoryId: String,
     val defaultPaymentMethod: String,
     val icon: ImageVector,
-    val subtitle: String
-)
+    val subtitleDe: String,
+    val subtitleEn: String
+) {
+    val title: String get() = titleDe
+    fun localizedTitle(isEn: Boolean) = if (isEn) titleEn else titleDe
+    fun localizedSubtitle(isEn: Boolean) = if (isEn) subtitleEn else subtitleDe
+}
 
 object QuickAddPresets {
     val items = listOf(
-        QuickAddPreset("Kaffee & Snack", 3.80, "cat_gastronomie", "Bar", Icons.Default.LocalCafe, "Café"),
-        QuickAddPreset("Mittagessen", 12.50, "cat_gastronomie", "Karte", Icons.Default.Fastfood, "Lunch"),
-        QuickAddPreset("Supermarkt", 35.00, "cat_lebensmittel", "Karte", Icons.Default.ShoppingCart, "Einkauf"),
-        QuickAddPreset("Tanken / Ticket", 25.00, "cat_transport", "Karte", Icons.Default.DirectionsCar, "Transit")
+        QuickAddPreset("Kaffee & Snack", "Coffee & Snack", 3.80, "cat_gastronomie", "Bar", Icons.Default.LocalCafe, "Café", "Café"),
+        QuickAddPreset("Mittagessen", "Lunch", 12.50, "cat_gastronomie", "Karte", Icons.Default.Fastfood, "Lunch", "Lunch"),
+        QuickAddPreset("Supermarkt", "Groceries", 35.00, "cat_lebensmittel", "Karte", Icons.Default.ShoppingCart, "Einkauf", "Shopping"),
+        QuickAddPreset("Tanken / Ticket", "Transit / Fuel", 25.00, "cat_transport", "Karte", Icons.Default.DirectionsCar, "Transit", "Transit")
     )
 }
 
@@ -71,13 +79,15 @@ object QuickAddPresets {
 fun QuickAddConfirmDialog(
     preset: QuickAddPreset,
     currentLocationName: String?,
+    language: AppLanguage = AppLanguage.DE,
     onDismiss: () -> Unit,
     onConfirm: (amount: Double, paymentMethod: String, location: String, feelingEmoji: String?) -> Unit
 ) {
+    val isEn = language.isEnglish
     var amountText by remember {
-        mutableStateOf(String.format(Locale.GERMAN, "%.2f", preset.defaultAmount))
+        mutableStateOf(String.format(if (isEn) Locale.US else Locale.GERMAN, "%.2f", preset.defaultAmount))
     }
-    var paymentMethod by remember { mutableStateOf(preset.defaultPaymentMethod) }
+    var paymentMethod by remember { mutableStateOf(if (isEn && preset.defaultPaymentMethod == "Bar") "Cash" else if (isEn && preset.defaultPaymentMethod == "Karte") "Card" else preset.defaultPaymentMethod) }
     var feelingEmoji by remember { mutableStateOf<String?>(null) }
     var locationText by remember {
         mutableStateOf(
@@ -91,7 +101,7 @@ fun QuickAddConfirmDialog(
     var isError by remember { mutableStateOf(false) }
 
     val quickCities = remember {
-        listOf("Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich")
+        listOf("Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich", "London", "Paris", "New York")
     }
 
     AlertDialog(
@@ -118,7 +128,7 @@ fun QuickAddConfirmDialog(
         },
         title = {
             Text(
-                text = preset.title,
+                text = preset.localizedTitle(isEn),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -126,7 +136,7 @@ fun QuickAddConfirmDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Betrag & Ort anpassen und verbuchen:",
+                    text = if (isEn) "Adjust amount & location and confirm:" else "Betrag & Ort anpassen und verbuchen:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -140,11 +150,11 @@ fun QuickAddConfirmDialog(
                         amountText = it
                         if (it.isNotBlank()) isError = false
                     },
-                    label = { Text("Betrag in €") },
+                    label = { Text(AppStrings.amountInEuro(language)) },
                     leadingIcon = { Icon(Icons.Default.Euro, contentDescription = null) },
                     isError = isError,
                     supportingText = if (isError) {
-                        { Text("Gültigen Betrag eingeben (z.B. 4,20)") }
+                        { Text(if (isEn) "Enter a valid amount (e.g. 4.20)" else "Gültigen Betrag eingeben (z.B. 4,20)") }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -157,7 +167,7 @@ fun QuickAddConfirmDialog(
                 OutlinedTextField(
                     value = locationText,
                     onValueChange = { locationText = it },
-                    label = { Text("Ort / Stadt (wird auf Karte platziert)") },
+                    label = { Text(if (isEn) "Location / City (placed on map)" else "Ort / Stadt (wird auf Karte platziert)") },
                     leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -183,7 +193,7 @@ fun QuickAddConfirmDialog(
                                 ) {
                                     Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(12.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Mein GPS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(if (isEn) "My GPS" else "Mein GPS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -209,7 +219,7 @@ fun QuickAddConfirmDialog(
                 // 10 Emojis für Kaufempfindungen (sofern nicht Grundnahrungsmittel)
                 if (PurchaseEmotions.shouldAskEmotion(preset.categoryId)) {
                     Text(
-                        text = "Wie hast du diesen Kauf empfunden?",
+                        text = if (isEn) "How did you feel about this purchase?" else "Wie hast du diesen Kauf empfunden?",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -235,7 +245,7 @@ fun QuickAddConfirmDialog(
                                     Text(text = emotion.emoji, fontSize = 18.sp)
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = emotion.title,
+                                        text = emotion.localizedTitle(isEn),
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
@@ -248,7 +258,7 @@ fun QuickAddConfirmDialog(
 
                 // Zahlungsart
                 Text(
-                    text = "Zahlungsmethode",
+                    text = AppStrings.paymentMethod(language),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -257,9 +267,12 @@ fun QuickAddConfirmDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("Karte", "Bar", "Online").forEach { method ->
+                    val methods = if (isEn) listOf("Card", "Cash", "Online") else listOf("Karte", "Bar", "Online")
+                    methods.forEach { method ->
                         FilterChip(
-                            selected = paymentMethod == method,
+                            selected = paymentMethod.equals(method, ignoreCase = true) ||
+                                    (isEn && method == "Card" && paymentMethod.equals("Karte", true)) ||
+                                    (!isEn && method == "Karte" && paymentMethod.equals("Card", true)),
                             onClick = { paymentMethod = method },
                             label = { Text(method) }
                         )
@@ -279,12 +292,12 @@ fun QuickAddConfirmDialog(
                     }
                 }
             ) {
-                Text("Buchen")
+                Text(AppStrings.bookNow(language))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(AppStrings.cancel(language))
             }
         }
     )

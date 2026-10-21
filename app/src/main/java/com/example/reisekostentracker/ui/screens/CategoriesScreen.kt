@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
 import java.text.NumberFormat
@@ -51,9 +53,11 @@ fun CategoriesScreen(
 ) {
     val categories by viewModel.categories.collectAsState()
     val allExpenses by viewModel.expenses.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isEn = currentLanguage.isEnglish
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
@@ -67,7 +71,7 @@ fun CategoriesScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Kategorie anlegen")
+                Icon(Icons.Default.Add, contentDescription = if (isEn) "Create Category" else "Kategorie anlegen")
             }
         }
     ) { innerPadding ->
@@ -82,13 +86,14 @@ fun CategoriesScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = "Ausgaben-Kategorien",
+                    text = AppStrings.navCategories(currentLanguage),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Erstelle eigene Reisekategorien mit individuellen Farben und Symbolen.",
+                    text = if (isEn) "Create custom spending categories with personalized colors and icons."
+                    else "Erstelle eigene Ausgabenkategorien mit individuellen Farben und Symbolen.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -133,7 +138,7 @@ fun CategoriesScreen(
                                         modifier = Modifier.weight(1f, fill = false)
                                     ) {
                                         Text(
-                                            text = cat.name,
+                                            text = AppStrings.categoryName(cat.id, cat.name, currentLanguage),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
@@ -159,7 +164,7 @@ fun CategoriesScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "${catExpenses.size} Einträge",
+                                        text = AppStrings.entriesCount(catExpenses.size, currentLanguage),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
@@ -171,7 +176,7 @@ fun CategoriesScreen(
                                         ) {
                                             Icon(
                                                 Icons.Default.Edit,
-                                                contentDescription = "Bearbeiten",
+                                                contentDescription = AppStrings.edit(currentLanguage),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(17.dp)
                                             )
@@ -184,7 +189,7 @@ fun CategoriesScreen(
                                             ) {
                                                 Icon(
                                                     Icons.Default.Delete,
-                                                    contentDescription = "Löschen",
+                                                    contentDescription = AppStrings.delete(currentLanguage),
                                                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                                                     modifier = Modifier.size(17.dp)
                                                 )

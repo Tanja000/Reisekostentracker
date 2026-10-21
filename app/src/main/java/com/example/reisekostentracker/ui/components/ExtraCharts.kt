@@ -1,4 +1,4 @@
-﻿package com.example.reisekostentracker.ui.components
+package com.example.reisekostentracker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +42,8 @@ import kotlin.math.max
 @Composable
 fun WeekdaySpendingChart(
     weekdayStats: List<WeekdayStat>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isEn: Boolean = false
 ) {
     val maxAmount = max(1.0, weekdayStats.maxOfOrNull { it.totalAmount } ?: 1.0)
     val numberFormat = remember { NumberFormat.getIntegerInstance(Locale.GERMANY) }
@@ -60,14 +61,14 @@ fun WeekdaySpendingChart(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Ausgaben nach Wochentag",
+                text = if (isEn) "Expenses by Weekday" else "Ausgaben nach Wochentag",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Vergleich der Reisetage von Montag bis Sonntag:",
+                text = if (isEn) "Comparison of spending from Monday to Sunday:" else "Vergleich der Reisetage von Montag bis Sonntag:",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -124,8 +125,21 @@ fun WeekdaySpendingChart(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        val displayDay = if (isEn) {
+                            when (day.dayName.trim().lowercase()) {
+                                "mo" -> "Mon"
+                                "di" -> "Tue"
+                                "mi" -> "Wed"
+                                "do" -> "Thu"
+                                "fr" -> "Fri"
+                                "sa" -> "Sat"
+                                "so" -> "Sun"
+                                else -> day.dayName
+                            }
+                        } else day.dayName
+
                         Text(
-                            text = day.dayName,
+                            text = displayDay,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Normal
@@ -140,7 +154,8 @@ fun WeekdaySpendingChart(
 @Composable
 fun PaymentMethodsCard(
     paymentStats: List<PaymentMethodStat>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isEn: Boolean = false
 ) {
     val currencyFormat = remember {
         NumberFormat.getNumberInstance(Locale.GERMANY).apply {
@@ -162,7 +177,7 @@ fun PaymentMethodsCard(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Zahlungsmethoden",
+                text = if (isEn) "Payment Methods" else "Zahlungsmethoden",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -181,6 +196,15 @@ fun PaymentMethodsCard(
                     "online" -> Color(0xFF2196F3)
                     else -> Color(0xFFFF9800)
                 }
+
+                val displayMethod = if (isEn) {
+                    when (pStat.method.lowercase()) {
+                        "bar", "bargeld" -> "Cash"
+                        "karte", "kreditkarte", "ec-karte" -> "Card"
+                        "online", "paypal" -> "Online"
+                        else -> pStat.method
+                    }
+                } else pStat.method
 
                 Row(
                     modifier = Modifier
@@ -203,7 +227,7 @@ fun PaymentMethodsCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = pStat.method, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(text = displayMethod, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             Text(
                                 text = "${currencyFormat.format(pStat.totalAmount)} € (${String.format(Locale.GERMAN, "%.1f", pStat.percentage)}%)",
                                 style = MaterialTheme.typography.bodySmall,

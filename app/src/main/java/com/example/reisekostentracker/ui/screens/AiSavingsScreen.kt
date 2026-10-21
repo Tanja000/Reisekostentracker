@@ -62,6 +62,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.PurchaseEmotions
 import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
 import com.example.reisekostentracker.ui.viewmodel.TimeFilter
@@ -85,16 +87,18 @@ fun AiSavingsScreen(
     val expenses by viewModel.expenses.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
     val worldBankInflationRate by viewModel.worldBankInflationRate.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isEn = currentLanguage.isEnglish
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
     }
 
-    val wholeNumberFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val wholeNumberFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             maximumFractionDigits = 0
         }
     }
@@ -132,15 +136,26 @@ fun AiSavingsScreen(
     var selectedHackDetail by remember { mutableStateOf<SparHackDetail?>(null) }
 
     // Witty Quotes Carousel State
-    val aiQuotes = remember {
-        listOf(
-            "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
-            "„Online-Warenkörbe um 23:00 Uhr sind selten eine rationale Lebensentscheidung.“",
-            "„Jeder nicht getätigte Frustkauf ist ein voll bezahlter Urlaubstag in deiner Zukunft.“",
-            "„Frust vergeht nach zwei Stunden – die Kreditkartenabrechnung bleibt den ganzen Monat.“",
-            "„Dein Zukunfts-Ich dankt dir jedes Mal, wenn du den Warenkorb einfach schließt.“",
-            "„Geld ausgeben für Dinge, die man nicht braucht, um Menschen zu imponieren, die man nicht mag.“"
-        )
+    val aiQuotes = remember(isEn) {
+        if (isEn) {
+            listOf(
+                "“That coffee will cost you €24.50 in 30 years—money missing from your retirement nest egg.”",
+                "“Online shopping carts at 11:00 PM are rarely a rational life decision.”",
+                "“Every impulse buy avoided is a fully paid vacation day in your future.”",
+                "“Frustration fades in two hours; your credit card bill stays all month.”",
+                "“Your future self thanks you every time you simply close the tab.”",
+                "“Spending money on things you don't need to impress people you don't like.”"
+            )
+        } else {
+            listOf(
+                "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
+                "„Online-Warenkörbe um 23:00 Uhr sind selten eine rationale Lebensentscheidung.“",
+                "„Jeder nicht getätigte Frustkauf ist ein voll bezahlter Urlaubstag in deiner Zukunft.“",
+                "„Frust vergeht nach zwei Stunden – die Kreditkartenabrechnung bleibt den ganzen Monat.“",
+                "„Dein Zukunfts-Ich dankt dir jedes Mal, wenn du den Warenkorb einfach schließt.“",
+                "„Geld ausgeben für Dinge, die man nicht braucht, um Menschen zu imponieren, die man nicht mag.“"
+            )
+        }
     }
     var currentQuoteIndex by remember { mutableIntStateOf(0) }
 
@@ -159,14 +174,14 @@ fun AiSavingsScreen(
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Spar-KI & Sparfuchs",
+                    text = AppStrings.sparKiTitle(currentLanguage),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Intelligente Frustkauf-Vermeidung & Vermögens-Effekt",
+                    text = AppStrings.sparKiSubtitle(currentLanguage),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -184,7 +199,7 @@ fun AiSavingsScreen(
                         FilterChip(
                             selected = timeFilter == filter,
                             onClick = { viewModel.setTimeFilter(filter) },
-                            label = { Text(filter.label) },
+                            label = { Text(filter.getLabel(currentLanguage)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -220,12 +235,13 @@ fun AiSavingsScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Spar-Status",
+                                    text = if (isEn) "Savings Status" else "Spar-Status",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
                                 )
                                 Text(
-                                    text = if (consciousPercentage >= 85) "Meister-Sparfuchs" else (if (consciousPercentage >= 70) "Bewusster Genießer" else "Impulsiver Entdecker"),
+                                    text = if (consciousPercentage >= 85) (if (isEn) "Master Saver" else "Meister-Sparfuchs")
+                                    else (if (consciousPercentage >= 70) (if (isEn) "Mindful Spender" else "Bewusster Genießer") else (if (isEn) "Impulse Explorer" else "Impulsiver Entdecker")),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -238,7 +254,7 @@ fun AiSavingsScreen(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
                         ) {
                             Text(
-                                text = "$consciousPercentage % Bewusst",
+                                text = "$consciousPercentage % ${if (isEn) "Mindful" else "Bewusst"}",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.ExtraBold,
@@ -261,7 +277,7 @@ fun AiSavingsScreen(
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = "Frust-Kosten",
+                                    text = if (isEn) "Impulse Cost" else "Frust-Kosten",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -273,7 +289,7 @@ fun AiSavingsScreen(
                                     color = if (totalFrustrationAmount > 0) Color(0xFFDC2626) else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "${frustrationExpenses.size} Fehlkäufe",
+                                    text = "${frustrationExpenses.size} ${if (isEn) "impulse buys" else "Fehlkäufe"}",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -288,7 +304,7 @@ fun AiSavingsScreen(
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = "30-Jahre-Effekt",
+                                    text = if (isEn) "30-Year Effect" else "30-Jahre-Effekt",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -301,7 +317,7 @@ fun AiSavingsScreen(
                                     color = Color(0xFF16A34A)
                                 )
                                 Text(
-                                    text = "Bei 7 % Weltbank-ETF",
+                                    text = if (isEn) "At 7% World Bank ETF" else "Bei 7 % Weltbank-ETF",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -336,7 +352,7 @@ fun AiSavingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Lebenszeit- & Arbeitsrechner",
+                            text = if (isEn) "Life Energy & Work Hours Calculator" else "Lebenszeit- & Arbeitsrechner",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -344,7 +360,8 @@ fun AiSavingsScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Wie viele Arbeitsstunden kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:",
+                        text = if (isEn) "How many work hours did impulse purchases cost you? Select net hourly wage:"
+                        else "Wie viele Arbeitsstunden kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -395,12 +412,12 @@ fun AiSavingsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Verlorene Arbeitszeit:",
+                                    text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
                                 Text(
-                                    text = String.format(Locale.GERMANY, "%.1f Stunden", workHoursLost),
+                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFFDC2626)
@@ -412,7 +429,7 @@ fun AiSavingsScreen(
                                 color = Color(0xFFFEE2E2)
                             ) {
                                 Text(
-                                    text = String.format(Locale.GERMANY, "≈ %.1f Arbeitstage", workDaysLost),
+                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.ExtraBold,
@@ -450,7 +467,7 @@ fun AiSavingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Was-Wäre-Wenn Zinseszins",
+                            text = AppStrings.compoundInterestTitle(currentLanguage),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -463,7 +480,7 @@ fun AiSavingsScreen(
                         color = Color(0xFFE0F2FE)
                     ) {
                         Text(
-                            text = "Weltbank-Inflation DEU: ${String.format(Locale.US, "%.2f", worldBankInflationRate)} % (Live aktualisiert)",
+                            text = "${AppStrings.worldBankInflation(worldBankInflationRate, currentLanguage)} (${if (isEn) "Live updated" else "Live aktualisiert"})",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             fontWeight = FontWeight.Bold,
@@ -473,7 +490,8 @@ fun AiSavingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Wähle deinen monatlichen Sparbetrag aus Frustkauf-Vermeidung:",
+                        text = if (isEn) "Choose your monthly savings from impulse avoidance:"
+                        else "Wähle deinen monatlichen Sparbetrag aus Frustkauf-Vermeidung:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -524,11 +542,20 @@ fun AiSavingsScreen(
                     val future10 = selectedMonthlySavings * (((1.0 + r).pow(months10) - 1.0) / r)
                     val future25 = selectedMonthlySavings * (((1.0 + r).pow(months25) - 1.0) / r)
 
-                    val milestoneReward = when (selectedMonthlySavings) {
-                        25 -> "✈️ Jährlicher Luxus-Städtetrip voll bezahlt"
-                        50 -> "🏖️ 1 ganzes Jahr Auszeit & Reisen am Meer"
-                        100 -> "⚡ Neuer Traumwagen bar & schuldenfrei"
-                        else -> "🏡 Das komplette Eigenkapital für eine Immobilie"
+                    val milestoneReward = if (isEn) {
+                        when (selectedMonthlySavings) {
+                            25 -> "✈️ Annual luxury city trip fully paid"
+                            50 -> "🏖️ 1 full year sabbatical & travel by the ocean"
+                            100 -> "⚡ Brand new dream car cash & debt-free"
+                            else -> "🏡 Complete down payment for real estate"
+                        }
+                    } else {
+                        when (selectedMonthlySavings) {
+                            25 -> "✈️ Jährlicher Luxus-Städtetrip voll bezahlt"
+                            50 -> "🏖️ 1 ganzes Jahr Auszeit & Reisen am Meer"
+                            100 -> "⚡ Neuer Traumwagen bar & schuldenfrei"
+                            else -> "🏡 Das komplette Eigenkapital für eine Immobilie"
+                        }
                     }
 
                     Surface(
@@ -546,7 +573,7 @@ fun AiSavingsScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "In 10 Jahren:",
+                                        text = if (isEn) "In 10 years:" else "In 10 Jahren:",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
@@ -559,7 +586,7 @@ fun AiSavingsScreen(
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "In 25 Jahren:",
+                                        text = if (isEn) "In 25 years:" else "In 25 Jahren:",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
@@ -623,7 +650,7 @@ fun AiSavingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "KI-Denkanstoß",
+                                text = if (isEn) "AI Spark of Thought" else "KI-Denkanstoß",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
@@ -638,7 +665,7 @@ fun AiSavingsScreen(
                         ) {
                             Icon(
                                 Icons.Default.Casino,
-                                contentDescription = "Anderer Spruch",
+                                contentDescription = if (isEn) "Next quote" else "Anderer Spruch",
                                 tint = Color(0xFF64748B),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -674,13 +701,13 @@ fun AiSavingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Spar-Hacks",
+                        text = AppStrings.savingsHacks(currentLanguage),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Tippen für Info",
+                        text = if (isEn) "Tap for details" else "Tippen für Info",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -695,33 +722,53 @@ fun AiSavingsScreen(
                 ) {
                     SparHackGridButton(
                         emoji = "⏱️",
-                        title = "48h-Pause",
-                        subtitle = "Spontankäufe 2 Tage warten",
+                        title = if (isEn) "48h Pause" else "48h-Pause",
+                        subtitle = if (isEn) "Wait 2 days on impulse buys" else "Spontankäufe 2 Tage warten",
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selectedHackDetail = SparHackDetail(
-                                emoji = "⏱️",
-                                title = "Die 48-Stunden-Regel",
-                                subtitle = "Spontankäufe 2 Tage pausieren",
-                                explanation = "Verhaltensökonomen belegen: Über 70 % aller emotionalen Spontankäufe verlieren nach 48 Stunden ihren Reiz.\n\nBeim Gedanken an einen Kauf schüttet das Gehirn kurzfristig Dopamin aus. Nach zwei Tagen normalisiert sich der Spiegel wieder und du entscheidest mit klarem Kopf.",
-                                keyRule = "Regel: Alles ab 20 €, was nicht überlebenswichtig ist, 48 Stunden auf die Bedenkliste setzen. Erst kaufen, wenn der Wunsch nach 2 Tagen noch immer da ist."
-                            )
+                            selectedHackDetail = if (isEn) {
+                                SparHackDetail(
+                                    emoji = "⏱️",
+                                    title = "The 48-Hour Rule",
+                                    subtitle = "Pause spontaneous buys for 2 days",
+                                    explanation = "Behavioral economists prove: Over 70% of impulse buys lose their appeal within 48 hours.\n\nThe initial dopamine rush fades after two days, restoring clear rational decision making.",
+                                    keyRule = "Rule: Any non-essential item over €20 goes onto a 48-hour waitlist. Only buy if the urge persists after two full days."
+                                )
+                            } else {
+                                SparHackDetail(
+                                    emoji = "⏱️",
+                                    title = "Die 48-Stunden-Regel",
+                                    subtitle = "Spontankäufe 2 Tage pausieren",
+                                    explanation = "Verhaltensökonomen belegen: Über 70 % aller emotionalen Spontankäufe verlieren nach 48 Stunden ihren Reiz.\n\nBeim Gedanken an einen Kauf schüttet das Gehirn kurzfristig Dopamin aus. Nach zwei Tagen normalisiert sich der Spiegel wieder und du entscheidest mit klarem Kopf.",
+                                    keyRule = "Regel: Alles ab 20 €, was nicht überlebenswichtig ist, 48 Stunden auf die Bedenkliste setzen. Erst kaufen, wenn der Wunsch nach 2 Tagen noch immer da ist."
+                                )
+                            }
                         }
                     )
 
                     SparHackGridButton(
                         emoji = "🚶",
-                        title = "Frust-Lauf",
-                        subtitle = "Schritte statt Shopping",
+                        title = if (isEn) "Frustration Walk" else "Frust-Lauf",
+                        subtitle = if (isEn) "Steps instead of shopping" else "Schritte statt Shopping",
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selectedHackDetail = SparHackDetail(
-                                emoji = "🚶",
-                                title = "Der Frust-Spaziergang",
-                                subtitle = "Schritte sammeln statt Geld ausgeben",
-                                explanation = "Frust, Streit oder Erschöpfung erzeugen einen Drang nach schneller Belohnung – oft durch 'Frustkäufe' am Smartphone.\n\nEin 15-minütiger Spaziergang an der frischen Luft baut das Stresshormon Cortisol nachweislich um bis zu 40 % ab und setzt natürliche Endorphine frei – völlig kostenlos.",
-                                keyRule = "Regel: Bei Frust sofort das Smartphone weglegen, Schuhe anziehen und 15 Minuten stramm spazieren gehen, bevor eine Kaufentscheidung fällt."
-                            )
+                            selectedHackDetail = if (isEn) {
+                                SparHackDetail(
+                                    emoji = "🚶",
+                                    title = "The Frustration Walk",
+                                    subtitle = "Collect steps instead of spending",
+                                    explanation = "Stress or anger drives quick dopamine cravings—often leading to smartphone impulse purchases.\n\nA 15-minute brisk walk outdoors cuts cortisol stress hormone by up to 40% and releases endorphins—completely free.",
+                                    keyRule = "Rule: When stressed, put the phone away, lace up your shoes, and take a 15-minute brisk walk before any purchase."
+                                )
+                            } else {
+                                SparHackDetail(
+                                    emoji = "🚶",
+                                    title = "Der Frust-Spaziergang",
+                                    subtitle = "Schritte sammeln statt Geld ausgeben",
+                                    explanation = "Frust, Streit oder Erschöpfung erzeugen einen Drang nach schneller Belohnung – oft durch 'Frustkäufe' am Smartphone.\n\nEin 15-minütiger Spaziergang an der frischen Luft baut das Stresshormon Cortisol nachweislich um bis zu 40 % ab und setzt natürliche Endorphine frei – völlig kostenlos.",
+                                    keyRule = "Regel: Bei Frust sofort das Smartphone weglegen, Schuhe anziehen und 15 Minuten stramm spazieren gehen, bevor eine Kaufentscheidung fällt."
+                                )
+                            }
                         }
                     )
                 }
@@ -735,17 +782,27 @@ fun AiSavingsScreen(
                 ) {
                     SparHackGridButton(
                         emoji = "💵",
-                        title = "30€ Limit",
-                        subtitle = "Emotionale Käufe bar deckeln",
+                        title = if (isEn) "€30 Limit" else "30€ Limit",
+                        subtitle = if (isEn) "Cap impulse buys strictly in cash" else "Emotionale Käufe bar deckeln",
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selectedHackDetail = SparHackDetail(
-                                emoji = "💵",
-                                title = "Das 30€ Bar-Budget",
-                                subtitle = "Spontanausgaben strikt bar begrenzen",
-                                explanation = "Kartenzahlung entkoppelt das Gehirn vom realen Schmerz des Geldverlusts ('Pain of Paying'). Völliger Verzicht führt jedoch zu Rückfällen.\n\nReserviere dir jeden Monat exakt 30 € in bar für Spontanausgaben und Belohnungen – ohne Karte.",
-                                keyRule = "Regel: Ist der 30€-Bargeldschein aufgebraucht, gibt es bis zum nächsten Monat absolut keine spontanen Belohnungskäufe mehr."
-                            )
+                            selectedHackDetail = if (isEn) {
+                                SparHackDetail(
+                                    emoji = "💵",
+                                    title = "The €30 Cash Budget",
+                                    subtitle = "Strictly limit emotional purchases to cash",
+                                    explanation = "Card payments numb the pain of paying. Total deprivation leads to relapse.\n\nWithdraw exactly €30 in physical cash each month dedicated for spontaneous treats.",
+                                    keyRule = "Rule: Once the €30 bill is spent, absolutely no more spontaneous treats until next month."
+                                )
+                            } else {
+                                SparHackDetail(
+                                    emoji = "💵",
+                                    title = "Das 30€ Bar-Budget",
+                                    subtitle = "Spontanausgaben strikt bar begrenzen",
+                                    explanation = "Kartenzahlung entkoppelt das Gehirn vom realen Schmerz des Geldverlusts ('Pain of Paying'). Völliger Verzicht führt jedoch zu Rückfällen.\n\nReserviere dir jeden Monat exakt 30 € in bar für Spontanausgaben und Belohnungen – ohne Karte.",
+                                    keyRule = "Regel: Ist der 30€-Bargeldschein aufgebraucht, gibt es bis zum nächsten Monat absolut keine spontanen Belohnungskäufe mehr."
+                                )
+                            }
                         }
                     )
 
@@ -755,13 +812,23 @@ fun AiSavingsScreen(
                         subtitle = "Hungry, Angry, Lonely, Tired",
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selectedHackDetail = SparHackDetail(
-                                emoji = "🧘",
-                                title = "Der HALT-Check",
-                                subtitle = "Hungry, Angry, Lonely, Tired",
-                                explanation = "Die HALT-Methode enttarnt die wahren Ursachen spontanen Kaufdrangs:\n\n• H (Hungry): Niedriger Blutzucker schwächt die Willenskraft.\n• A (Angry): Frust und Ärger suchen ein Ventil im Konsum.\n• L (Lonely / Bored): Einsamkeit und Langeweile füllt man mit Paketen.\n• T (Tired): Nach 20 Uhr ist die Selbstbeherrschung erschöpft.",
-                                keyRule = "Regel: Frage dich vor dem Klick: Bin ich Hungrig, Wütend, Einsam oder Müde? Behebe das echte Bedürfnis statt Geld auszugeben."
-                            )
+                            selectedHackDetail = if (isEn) {
+                                SparHackDetail(
+                                    emoji = "🧘",
+                                    title = "The HALT Check",
+                                    subtitle = "Hungry, Angry, Lonely, Tired",
+                                    explanation = "The HALT method uncovers the root emotional causes of spontaneous urges:\n\n• H (Hungry): Low blood sugar impairs willpower.\n• A (Angry): Anger and frustration seek an outlet through spending.\n• L (Lonely / Bored): Loneliness is compensated with packages.\n• T (Tired): After 8 PM, self-control is exhausted.",
+                                    keyRule = "Rule: Ask yourself before clicking: Am I Hungry, Angry, Lonely, or Tired? Address the real need instead of spending money."
+                                )
+                            } else {
+                                SparHackDetail(
+                                    emoji = "🧘",
+                                    title = "Der HALT-Check",
+                                    subtitle = "Hungry, Angry, Lonely, Tired",
+                                    explanation = "Die HALT-Methode enttarnt die wahren Ursachen spontanen Kaufdrangs:\n\n• H (Hungry): Niedriger Blutzucker schwächt die Willenskraft.\n• A (Angry): Frust und Ärger suchen ein Ventil im Konsum.\n• L (Lonely / Bored): Einsamkeit und Langeweile füllt man mit Paketen.\n• T (Tired): Nach 20 Uhr ist die Selbstbeherrschung erschöpft.",
+                                    keyRule = "Regel: Frage dich vor dem Klick: Bin ich Hungrig, Wütend, Einsam oder Müde? Behebe das echte Bedürfnis statt Geld auszugeben."
+                                )
+                            }
                         }
                     )
                 }
@@ -777,13 +844,13 @@ fun AiSavingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Erfasste Fehl- & Frustkäufe",
+                        text = if (isEn) "Recorded Impulse Purchases" else "Erfasste Fehl- & Frustkäufe",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${frustrationExpenses.size} Einträge",
+                        text = AppStrings.entriesCount(frustrationExpenses.size, currentLanguage),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -846,20 +913,6 @@ fun AiSavingsScreen(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFDC2626)
                         )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        IconButton(
-                            onClick = { viewModel.deleteExpense(exp.id) },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Löschen",
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
                     }
                 }
             }
@@ -921,7 +974,7 @@ fun AiSavingsScreen(
                     onClick = { selectedHackDetail = null },
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Verstanden")
+                    Text(AppStrings.understood(currentLanguage))
                 }
             }
         )

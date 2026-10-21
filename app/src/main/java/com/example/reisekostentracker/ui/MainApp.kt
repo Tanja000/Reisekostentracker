@@ -88,6 +88,7 @@ fun MainApp(
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteAllConfirmation by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val isDarkTheme by viewModel.isDarkTheme.collectAsState()
@@ -190,22 +191,6 @@ fun MainApp(
                         }
                     }
 
-                    // GPS Location Refresh Button
-                    IconButton(onClick = {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
-                        )
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = if (currentLanguage.isEnglish) "GPS Location" else "GPS Standort",
-                            tint = if (hasLocationConsent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-
                     // Dark Mode Toggle Button
                     IconButton(onClick = { viewModel.toggleDarkTheme() }) {
                         Icon(
@@ -223,17 +208,17 @@ fun MainApp(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(if (currentLanguage.isEnglish) "Load Demo Financial Data" else "Demo-Finanzdaten laden") },
+                            text = { Text(AppStrings.menuLoadDemo(currentLanguage)) },
                             onClick = {
                                 viewModel.seedDemoData()
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (currentLanguage.isEnglish) "Delete All Expenses" else "Alle Ausgaben löschen") },
+                            text = { Text(AppStrings.menuDeleteAll(currentLanguage)) },
                             onClick = {
-                                viewModel.clearAllData()
                                 showMenu = false
+                                showDeleteAllConfirmation = true
                             }
                         )
                     }
@@ -338,6 +323,40 @@ fun MainApp(
         )
     }
 
+    // Delete All Confirmation Dialog
+    if (showDeleteAllConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllConfirmation = false },
+            title = {
+                Text(
+                    text = AppStrings.deleteAllTitle(currentLanguage),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(text = AppStrings.deleteAllMessage(currentLanguage))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.clearAllData()
+                        showDeleteAllConfirmation = false
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(AppStrings.deleteAllConfirm(currentLanguage))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllConfirmation = false }) {
+                    Text(AppStrings.cancel(currentLanguage))
+                }
+            }
+        )
+    }
+
     // Dialogs
     if (isExpenseDialogOpen) {
         val lastLocationName by viewModel.lastLocationName.collectAsState()
@@ -347,6 +366,12 @@ fun MainApp(
             currentLocationName = lastLocationName,
             language = currentLanguage,
             onDismiss = { viewModel.closeExpenseDialog() },
+            onDelete = {
+                editingExpense?.id?.let { expId ->
+                    viewModel.deleteExpense(expId)
+                }
+                viewModel.closeExpenseDialog()
+            },
             onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName, feelingEmoji, isRecurring, recurringInterval ->
                 viewModel.saveExpense(
                     title = title,
@@ -369,6 +394,7 @@ fun MainApp(
     if (isCategoryDialogOpen) {
         AddEditCategoryDialog(
             initialCategory = editingCategory,
+            language = currentLanguage,
             onDismiss = { viewModel.closeCategoryDialog() },
             onSave = { name, iconName, colorValue ->
                 viewModel.saveCategory(name, iconName, colorValue)

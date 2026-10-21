@@ -18,6 +18,35 @@ data class ExpenseCategory(
     val icon: ImageVector
         get() = getIconByName(iconName)
 
+    fun localizedName(isEn: Boolean): String {
+        if (!isEn) return name
+        return when (id) {
+            "cat_lebensmittel" -> "Groceries & Supermarket"
+            "cat_wohnen" -> "Rent & Housing"
+            "cat_gastronomie" -> "Restaurant & Café"
+            "cat_transport" -> "Mobility & Transport"
+            "cat_shopping" -> "Shopping & Fashion"
+            "cat_freizeit" -> "Leisure & Hobby"
+            "cat_gesundheit" -> "Health & Drugstore"
+            "cat_abos" -> "Contracts & Subscriptions"
+            "cat_reisen" -> "Vacation & Travel"
+            "cat_sonstiges" -> "Miscellaneous"
+            else -> when (name) {
+                "Lebensmittel & Supermarkt" -> "Groceries & Supermarket"
+                "Miete & Wohnen" -> "Rent & Housing"
+                "Restaurant & Café" -> "Restaurant & Café"
+                "Mobilität & Transport" -> "Mobility & Transport"
+                "Shopping & Mode" -> "Shopping & Fashion"
+                "Freizeit & Hobby" -> "Leisure & Hobby"
+                "Gesundheit & Drogerie" -> "Health & Drugstore"
+                "Verträge & Abos" -> "Contracts & Subscriptions"
+                "Urlaub & Reisen" -> "Vacation & Travel"
+                "Sonstiges" -> "Miscellaneous"
+                else -> name
+            }
+        }
+    }
+
     companion object {
         fun getIconByName(name: String): ImageVector {
             return when (name.lowercase()) {

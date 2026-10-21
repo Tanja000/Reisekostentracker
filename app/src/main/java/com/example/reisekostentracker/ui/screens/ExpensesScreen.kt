@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,7 +88,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExpensesScreen(
     viewModel: ExpenseViewModel,
@@ -272,7 +274,7 @@ fun ExpensesScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = preset.title,
+                                    text = preset.localizedTitle(currentLanguage.isEnglish),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -343,20 +345,20 @@ fun ExpensesScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Keine Ausgaben gefunden",
+                            text = AppStrings.noExpensesFound(currentLanguage),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Tippe auf das '+' um Kosten hinzuzufügen, oder lade Beispieldaten.",
+                            text = AppStrings.noExpensesHint(currentLanguage),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedButton(onClick = { viewModel.seedDemoData() }) {
-                            Text("Reise-Beispieldaten laden")
+                            Text(AppStrings.loadSampleData(currentLanguage))
                         }
                     }
                 }
@@ -491,20 +493,6 @@ fun ExpensesScreen(
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
-
-                                        Spacer(modifier = Modifier.width(6.dp))
-
-                                        IconButton(
-                                            onClick = { viewModel.deleteExpense(expense.id) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = AppStrings.delete(currentLanguage),
-                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.65f),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
                                     }
 
                                     if (expense.notes.isNotBlank()) {
@@ -528,13 +516,15 @@ fun ExpensesScreen(
 
     // Quick-Add Confirmation & Customization Dialog
     activeQuickAdd?.let { preset ->
+        val bookedTitle = preset.localizedTitle(currentLanguage.isEnglish)
         QuickAddConfirmDialog(
             preset = preset,
             currentLocationName = lastLocationName,
+            language = currentLanguage,
             onDismiss = { activeQuickAdd = null },
             onConfirm = { amount, method, location, feelingEmoji ->
                 viewModel.quickAddExpense(
-                    title = preset.title,
+                    title = bookedTitle,
                     amount = amount,
                     categoryId = preset.categoryId,
                     paymentMethod = method,
@@ -543,8 +533,8 @@ fun ExpensesScreen(
                 )
                 Toast.makeText(
                     context,
-                    if (currentLanguage.isEnglish) "✓ Booked: ${preset.title} (${currencyFormat.format(amount)} € in $location)"
-                    else "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} € in $location)",
+                    if (currentLanguage.isEnglish) "✓ Booked: $bookedTitle (${currencyFormat.format(amount)} € in $location)"
+                    else "✓ Gebucht: $bookedTitle (${currencyFormat.format(amount)} € in $location)",
                     Toast.LENGTH_SHORT
                 ).show()
                 activeQuickAdd = null
@@ -750,13 +740,36 @@ fun ExpensesScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
+                        text = AppStrings.category(currentLanguage),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.forEach { cat ->
+                            FilterChip(
+                                selected = recCategory == cat.id,
+                                onClick = { recCategory = cat.id },
+                                label = { Text(AppStrings.categoryName(cat.id, cat.name, currentLanguage)) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
                         text = if (currentLanguage.isEnglish) "Interval:" else "Intervall:",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Row(
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         RecurringInterval.values().forEach { interval ->

@@ -957,6 +957,7 @@
 
         <div class="btn-group">
           <button type="button" class="btn btn-secondary" onclick="closeModal('expenseModal')" id="btnCancelExp">Abbrechen</button>
+          <button type="button" class="btn" style="background:#fee2e2; color:#ef4444; display:none;" id="btnDeleteExp" onclick="deleteCurrentModalExpense()">Löschen</button>
           <button type="submit" class="btn btn-primary" id="btnSaveExp">Speichern</button>
         </div>
       </form>
@@ -1992,9 +1993,6 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
                   <span style="font-size:11px; color:var(--outline);">${cat.name} \u2022 ${formatDate(exp.date)}</span>
-                  <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; margin-left:6px;" onclick="deleteExpense('${exp.id}')" title="Löschen">
-                    <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -2306,9 +2304,6 @@
                   <span style="font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
                   <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-size:13.5px; font-weight:900; color:#dc2626; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
-                    <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
-                      <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
-                    </button>
                   </div>
                 </div>
                 <div style="font-size:11px; color:var(--outline); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -2344,9 +2339,6 @@
                   <span style="font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
                   <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-size:13.5px; font-weight:900; color:#dc2626; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
-                    <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
-                      <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
-                    </button>
                   </div>
                 </div>
                 <div style="font-size:11px; color:var(--outline); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -2532,9 +2524,6 @@
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
               <span style="font-size:10px; color:var(--outline);">\uD83D\uDCC5 ${formatDate(exp.date)}</span>
-              <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="deleteExpense('${exp.id}')" title="Löschen">
-                <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
-              </button>
             </div>
           </div>
         `);
@@ -2678,9 +2667,6 @@
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
                     <span style="font-size:11px; color:var(--outline);">${cat.name} \u2022 ${formatDate(exp.date)}</span>
-                    <button class="icon-btn" style="width:24px; height:24px; color:#ef4444; margin-left:6px;" onclick="deleteExpense('${exp.id}')" title="Löschen">
-                      <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -2907,6 +2893,11 @@
 
     function openAddExpenseModal(exp) {
       const titleEl = document.getElementById("modalExpenseTitle");
+      const delBtn = document.getElementById("btnDeleteExp");
+      if (delBtn) {
+        delBtn.style.display = exp ? "inline-flex" : "none";
+        delBtn.innerText = currentLang === 'en' ? "Delete" : "Löschen";
+      }
       if (exp) {
         if (titleEl) titleEl.innerText = t("editExpense") || "Ausgabe bearbeiten";
         document.getElementById("expId").value = exp.id;
@@ -3135,6 +3126,14 @@
         expenses = expenses.filter(e => e.id !== id);
         saveState();
         renderScreen();
+      }
+    }
+
+    function deleteCurrentModalExpense() {
+      const id = document.getElementById("expId").value;
+      if (id) {
+        deleteExpense(id);
+        closeModal('expenseModal');
       }
     }
 

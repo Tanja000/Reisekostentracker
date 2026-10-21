@@ -21,13 +21,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Autorenew
-import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -69,6 +70,7 @@ fun AddEditExpenseDialog(
     currentLocationName: String? = null,
     language: AppLanguage = AppLanguage.DE,
     onDismiss: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     onSave: (
         title: String,
         amount: Double,
@@ -84,12 +86,13 @@ fun AddEditExpenseDialog(
         recurringInterval: RecurringInterval
     ) -> Unit
 ) {
+    val isEn = language.isEnglish
     var title by remember { mutableStateOf(initialExpense?.title ?: "") }
     var isRecurring by remember { mutableStateOf(false) }
     var recurringInterval by remember { mutableStateOf(RecurringInterval.MONTHLY) }
     var amountText by remember {
         mutableStateOf(
-            if (initialExpense != null) String.format(Locale.GERMAN, "%.2f", initialExpense.amount)
+            if (initialExpense != null) String.format(if (isEn) Locale.US else Locale.GERMAN, "%.2f", initialExpense.amount)
             else ""
         )
     }
@@ -100,7 +103,7 @@ fun AddEditExpenseDialog(
     }
     var selectedDate by remember { mutableStateOf(initialExpense?.date ?: System.currentTimeMillis()) }
     var notes by remember { mutableStateOf(initialExpense?.notes ?: "") }
-    var paymentMethod by remember { mutableStateOf(initialExpense?.paymentMethod ?: "Karte") }
+    var paymentMethod by remember { mutableStateOf(initialExpense?.paymentMethod ?: if (isEn) "Card" else "Karte") }
     var feelingEmoji by remember { mutableStateOf(initialExpense?.feelingEmoji) }
     var locationName by remember {
         mutableStateOf(
@@ -116,13 +119,14 @@ fun AddEditExpenseDialog(
     var titleError by remember { mutableStateOf(false) }
     var amountError by remember { mutableStateOf(false) }
 
-    val dateFormat = remember { SimpleDateFormat("dd. MMMM yyyy", Locale.GERMAN) }
+    val locale = if (isEn) Locale.ENGLISH else Locale.GERMAN
+    val dateFormat = remember(isEn) { SimpleDateFormat(if (isEn) "MMMM dd, yyyy" else "dd. MMMM yyyy", locale) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (initialExpense == null) "Neue Ausgabe erfassen" else "Ausgabe bearbeiten",
+                text = if (initialExpense == null) AppStrings.newExpense(language) else AppStrings.editExpense(language),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -139,11 +143,11 @@ fun AddEditExpenseDialog(
                         title = it
                         if (it.isNotBlank()) titleError = false
                     },
-                    label = { Text("Titel (z.B. Supermarkt, Miete, Kaffee)") },
+                    label = { Text(if (isEn) "Title (e.g. Groceries, Rent, Coffee)" else "Titel (z.B. Supermarkt, Miete, Kaffee)") },
                     leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) },
                     isError = titleError,
                     supportingText = if (titleError) {
-                        { Text("Bitte einen Titel eingeben") }
+                        { Text(if (isEn) "Please enter a title" else "Bitte einen Titel eingeben") }
                     } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -158,11 +162,11 @@ fun AddEditExpenseDialog(
                         amountText = it
                         if (it.isNotBlank()) amountError = false
                     },
-                    label = { Text("Betrag in €") },
+                    label = { Text(AppStrings.amountInEuro(language)) },
                     leadingIcon = { Icon(Icons.Default.Euro, contentDescription = null) },
                     isError = amountError,
                     supportingText = if (amountError) {
-                        { Text("Gültigen Betrag eingeben (z.B. 12,50)") }
+                        { Text(if (isEn) "Enter valid amount (e.g. 12.50)" else "Gültigen Betrag eingeben (z.B. 12,50)") }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -173,7 +177,7 @@ fun AddEditExpenseDialog(
 
                 // Category Chips
                 Text(
-                    text = "Kategorie",
+                    text = AppStrings.category(language),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -195,7 +199,7 @@ fun AddEditExpenseDialog(
                                     modifier = Modifier.size(16.dp)
                                 )
                             },
-                            label = { Text(cat.name) }
+                            label = { Text(AppStrings.categoryName(cat.id, cat.name, language)) }
                         )
                     }
                 }
@@ -205,12 +209,12 @@ fun AddEditExpenseDialog(
                 // 10 Emojis für Kaufempfindungen (Frustkauf, Zufriedenheit, Gönnung...)
                 if (PurchaseEmotions.shouldAskEmotion(selectedCategoryId)) {
                     Text(
-                        text = "Wie hast du diesen Kauf empfunden?",
+                        text = if (isEn) "How did you feel about this purchase?" else "Wie hast du diesen Kauf empfunden?",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Wähle aus 10 Emojis (KI-Analyse für Frust- & Impulskäufe):",
+                        text = if (isEn) "Select from 10 emojis (AI impulse & frustration analysis):" else "Wähle aus 10 Emojis (KI-Analyse für Frust- & Impulskäufe):",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -222,6 +226,7 @@ fun AddEditExpenseDialog(
                     ) {
                         items(PurchaseEmotions.list) { emotion ->
                             val isSelected = feelingEmoji == emotion.emoji
+                            val emotionTitle = emotion.localizedTitle(isEn)
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -237,7 +242,7 @@ fun AddEditExpenseDialog(
                                     Text(text = emotion.emoji, fontSize = 22.sp)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = emotion.title,
+                                        text = emotionTitle,
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -252,7 +257,7 @@ fun AddEditExpenseDialog(
                         if (emotion != null) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${emotion.emoji} ${emotion.title}: ${emotion.description}",
+                                text = "${emotion.emoji} ${emotion.localizedTitle(isEn)}: ${emotion.localizedDescription(isEn)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (emotion.isFrustrationOrImpulse) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
@@ -272,7 +277,7 @@ fun AddEditExpenseDialog(
                             Text(text = "🏠", fontSize = 18.sp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Miete & Grundnahrungsmittel: Emotionale Kaufbewertung entfällt.",
+                                text = if (isEn) "Housing & groceries: Emotional rating exempt." else "Miete & Grundnahrungsmittel: Emotionale Kaufbewertung entfällt.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -284,7 +289,7 @@ fun AddEditExpenseDialog(
 
                 // Payment Method Chips
                 Text(
-                    text = "Zahlungsmethode",
+                    text = AppStrings.paymentMethod(language),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -293,9 +298,12 @@ fun AddEditExpenseDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("Karte", "Bar", "Online").forEach { method ->
+                    val methods = if (isEn) listOf("Card", "Cash", "Online") else listOf("Karte", "Bar", "Online")
+                    methods.forEach { method ->
                         FilterChip(
-                            selected = paymentMethod == method,
+                            selected = paymentMethod.equals(method, ignoreCase = true) ||
+                                    (isEn && method == "Card" && paymentMethod.equals("Karte", true)) ||
+                                    (!isEn && method == "Karte" && paymentMethod.equals("Card", true)),
                             onClick = { paymentMethod = method },
                             label = { Text(method) }
                         )
@@ -306,7 +314,7 @@ fun AddEditExpenseDialog(
 
                 // Date
                 Text(
-                    text = "Datum: ${dateFormat.format(Date(selectedDate))}",
+                    text = "${AppStrings.date(language)}: ${dateFormat.format(Date(selectedDate))}",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -324,12 +332,12 @@ fun AddEditExpenseDialog(
                     FilterChip(
                         selected = dateFormat.format(Date(selectedDate)) == dateFormat.format(Date(todayMillis)),
                         onClick = { selectedDate = todayMillis },
-                        label = { Text("Heute") }
+                        label = { Text(if (isEn) "Today" else "Heute") }
                     )
                     FilterChip(
                         selected = dateFormat.format(Date(selectedDate)) == dateFormat.format(Date(yesterdayMillis)),
                         onClick = { selectedDate = yesterdayMillis },
-                        label = { Text("Gestern") }
+                        label = { Text(if (isEn) "Yesterday" else "Gestern") }
                     )
                 }
 
@@ -339,7 +347,7 @@ fun AddEditExpenseDialog(
                 OutlinedTextField(
                     value = locationName,
                     onValueChange = { locationName = it },
-                    label = { Text("Ort / GPS-Standort") },
+                    label = { Text(AppStrings.locationOptional(language)) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.LocationOn,
@@ -352,7 +360,7 @@ fun AddEditExpenseDialog(
                             IconButton(onClick = { locationName = currentLocationName }) {
                                 Icon(
                                     Icons.Default.MyLocation,
-                                    contentDescription = "GPS-Standort übernehmen",
+                                    contentDescription = if (isEn) "Use current GPS location" else "GPS-Standort übernehmen",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -369,7 +377,8 @@ fun AddEditExpenseDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(listOf("Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich")) { city ->
+                    val cities = listOf("Karlsruhe", "München", "Berlin", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Wien", "Zürich", "London", "Paris", "New York")
+                    items(cities) { city ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (locationName == city) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -392,7 +401,7 @@ fun AddEditExpenseDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(if (language.isEnglish) "Notes (optional)" else "Notiz (optional)") },
+                    label = { Text(AppStrings.notesOptional(language)) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null) },
                     singleLine = false,
                     maxLines = 3,
@@ -427,12 +436,12 @@ fun AddEditExpenseDialog(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
                                         Text(
-                                            text = if (language.isEnglish) "Recurring Expense" else "Wiederkehrende Ausgabe",
+                                            text = AppStrings.recurringExpenses(language),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = if (language.isEnglish) "Automatically recorded every cycle" else "Automatisch in Intervallen erfassen",
+                                            text = AppStrings.recurringIntervalSub(language),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.outline
                                         )
@@ -447,13 +456,14 @@ fun AddEditExpenseDialog(
                             if (isRecurring) {
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
-                                    text = if (language.isEnglish) "Interval:" else "Intervall:",
+                                    text = "${AppStrings.interval(language)}:",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Row(
+                                FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     RecurringInterval.values().forEach { interval ->
@@ -462,7 +472,7 @@ fun AddEditExpenseDialog(
                                             onClick = { recurringInterval = interval },
                                             label = {
                                                 Text(
-                                                    text = interval.label(language.isEnglish),
+                                                    text = interval.label(isEn),
                                                     style = MaterialTheme.typography.labelSmall
                                                 )
                                             }
@@ -476,45 +486,61 @@ fun AddEditExpenseDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val parsedAmount = amountText.replace(",", ".").toDoubleOrNull()
-                    if (title.isBlank()) {
-                        titleError = true
-                    }
-                    if (parsedAmount == null || parsedAmount <= 0.0) {
-                        amountError = true
-                    }
-                    if (title.isNotBlank() && parsedAmount != null && parsedAmount > 0.0) {
-                        onSave(
-                            title.trim(),
-                            parsedAmount,
-                            "EUR",
-                            selectedCategoryId,
-                            null, // No trip association in TrackMyCent
-                            selectedDate,
-                            notes.trim(),
-                            paymentMethod,
-                            locationName.trim().ifEmpty { null },
-                            feelingEmoji,
-                            isRecurring,
-                            recurringInterval
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (initialExpense != null && onDelete != null) {
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
                         )
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = AppStrings.delete(language),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(AppStrings.delete(language))
                     }
                 }
-            ) {
-                Text(
-                    if (initialExpense == null) {
-                        if (language.isEnglish) "Add" else "Hinzufügen"
-                    } else {
-                        if (language.isEnglish) "Save" else "Speichern"
+
+                Button(
+                    onClick = {
+                        val parsedAmount = amountText.replace(",", ".").toDoubleOrNull()
+                        if (title.isBlank()) {
+                            titleError = true
+                        }
+                        if (parsedAmount == null || parsedAmount <= 0.0) {
+                            amountError = true
+                        }
+                        if (title.isNotBlank() && parsedAmount != null && parsedAmount > 0.0) {
+                            onSave(
+                                title.trim(),
+                                parsedAmount,
+                                "EUR",
+                                selectedCategoryId,
+                                null,
+                                selectedDate,
+                                notes.trim(),
+                                paymentMethod,
+                                locationName.trim().ifEmpty { null },
+                                feelingEmoji,
+                                isRecurring,
+                                recurringInterval
+                            )
+                        }
                     }
-                )
+                ) {
+                    Text(if (initialExpense == null) AppStrings.add(language) else AppStrings.save(language))
+                }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(if (language.isEnglish) "Cancel" else "Abbrechen")
+                Text(AppStrings.cancel(language))
             }
         }
     )

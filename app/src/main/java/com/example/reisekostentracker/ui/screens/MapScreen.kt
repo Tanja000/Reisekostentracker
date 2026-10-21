@@ -89,6 +89,8 @@ fun MapScreen(
     val context = LocalContext.current
     val expenses by viewModel.expenses.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isEn = currentLanguage.isEnglish
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
     var priceFilter by remember { mutableStateOf(MapPriceFilter.ALL) }
@@ -110,9 +112,9 @@ fun MapScreen(
     }
 
     // Hotspot grouping by Location Name
-    val locationHotspots = remember(expensesWithLocation) {
+    val locationHotspots = remember(expensesWithLocation, isEn) {
         expensesWithLocation
-            .groupBy { it.locationName?.trim().takeUnless { s -> s.isNullOrEmpty() } ?: "Unbekannter Ort" }
+            .groupBy { it.locationName?.trim().takeUnless { s -> s.isNullOrEmpty() } ?: (if (isEn) "Unknown Location" else "Unbekannter Ort") }
             .map { (locName, list) ->
                 val total = list.sumOf { it.amount }
                 val count = list.size
@@ -126,13 +128,13 @@ fun MapScreen(
     var selectedExpense by remember { mutableStateOf<Expense?>(null) }
     var mapLibreInstance by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
     }
-    val dateFormat = remember { SimpleDateFormat("dd. MMM yyyy", Locale.GERMAN) }
+    val dateFormat = remember(isEn) { SimpleDateFormat(if (isEn) "MMM dd, yyyy" else "dd. MMM yyyy", if (isEn) Locale.US else Locale.GERMAN) }
 
     LaunchedEffect(displayedExpenses, mapLibreInstance) {
         val map = mapLibreInstance ?: return@LaunchedEffect
@@ -142,7 +144,7 @@ fun MapScreen(
                 MarkerOptions()
                     .position(LatLng(exp.latitude!!, exp.longitude!!))
                     .title(exp.title)
-                    .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
+                    .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: (if (isEn) "Location" else "Standort")}")
                     .icon(createPriceBadgeIcon(exp.amount, context))
             )
         }
@@ -172,7 +174,7 @@ fun MapScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Ausgaben-Karte",
+                        text = if (isEn) "Expenses Map" else "Ausgaben-Karte",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -181,7 +183,7 @@ fun MapScreen(
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = "${displayedExpenses.size} Marker",
+                            text = "${displayedExpenses.size} ${if (isEn) "Markers" else "Marker"}",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -191,7 +193,8 @@ fun MapScreen(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Farbcodierte Preis-Pins zeigen sofort, wo es besonders günstig oder teuer war.",
+                    text = if (isEn) "Color-coded price pins instantly show affordable and expensive spots."
+                    else "Farbcodierte Preis-Pins zeigen sofort, wo es besonders günstig oder teuer war.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -206,10 +209,10 @@ fun MapScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LegendItem(color = Color(0xFF10B981), label = "< 15 € (Günstig)")
-                    LegendItem(color = Color(0xFFF59E0B), label = "15-50 € (Moderat)")
-                    LegendItem(color = Color(0xFFF97316), label = "50-100 € (Gehoben)")
-                    LegendItem(color = Color(0xFFDC2626), label = "> 100 € 🔥 (Luxus)")
+                    LegendItem(color = Color(0xFF10B981), label = if (isEn) "< 15 € (Budget)" else "< 15 € (Günstig)")
+                    LegendItem(color = Color(0xFFF59E0B), label = if (isEn) "15-50 € (Moderate)" else "15-50 € (Moderat)")
+                    LegendItem(color = Color(0xFFF97316), label = if (isEn) "50-100 € (Upscale)" else "50-100 € (Gehoben)")
+                    LegendItem(color = Color(0xFFDC2626), label = if (isEn) "> 100 € 🔥 (Luxury)" else "> 100 € 🔥 (Luxus)")
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -222,12 +225,12 @@ fun MapScreen(
                     FilterChip(
                         selected = priceFilter == MapPriceFilter.ALL,
                         onClick = { priceFilter = MapPriceFilter.ALL },
-                        label = { Text("Alle (${expensesWithLocation.size})") }
+                        label = { Text("${if (isEn) "All" else "Alle"} (${expensesWithLocation.size})") }
                     )
                     FilterChip(
                         selected = priceFilter == MapPriceFilter.EXPENSIVE_ONLY,
                         onClick = { priceFilter = MapPriceFilter.EXPENSIVE_ONLY },
-                        label = { Text("🔥 Teuer (> 50 €)") },
+                        label = { Text(if (isEn) "🔥 Expensive (> 50 €)" else "🔥 Teuer (> 50 €)") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFEE2E2),
                             selectedLabelColor = Color(0xFFB91C1C)
@@ -236,7 +239,7 @@ fun MapScreen(
                     FilterChip(
                         selected = priceFilter == MapPriceFilter.CHEAP_ONLY,
                         onClick = { priceFilter = MapPriceFilter.CHEAP_ONLY },
-                        label = { Text("🟢 Günstig (< 15 €)") },
+                        label = { Text(if (isEn) "🟢 Budget (< 15 €)" else "🟢 Günstig (< 15 €)") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFD1FAE5),
                             selectedLabelColor = Color(0xFF047857)
@@ -358,16 +361,6 @@ fun MapScreen(
                                         )
                                     }
                                     IconButton(
-                                        onClick = {
-                                            viewModel.deleteExpense(exp.id)
-                                            selectedExpense = null
-                                        },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
-                                    }
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    IconButton(
                                         onClick = { selectedExpense = null },
                                         modifier = Modifier.size(28.dp)
                                     ) {
@@ -391,12 +384,12 @@ fun MapScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "🏆 Teuerste Ausgaben-Hotspots",
+                            text = if (isEn) "🏆 Top Spending Hotspots" else "🏆 Teuerste Ausgaben-Hotspots",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Nach Ort",
+                            text = if (isEn) "By Location" else "Nach Ort",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -458,7 +451,7 @@ fun MapScreen(
 
         item {
             Text(
-                text = "Alle Orte & Ausgaben-Rangliste",
+                text = if (isEn) "All Locations & Expense Ranking" else "Alle Orte & Ausgaben-Rangliste",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -505,7 +498,7 @@ fun MapScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = exp.locationName ?: "Unbekannter Ort",
+                            text = exp.locationName ?: (if (isEn) "Unknown Location" else "Unbekannter Ort"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -544,20 +537,6 @@ fun MapScreen(
                                 color = MaterialTheme.colorScheme.outline
                             )
                         }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = { viewModel.deleteExpense(exp.id) },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Löschen",
-                            tint = Color(0xFFEF4444),
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
                 }
             }

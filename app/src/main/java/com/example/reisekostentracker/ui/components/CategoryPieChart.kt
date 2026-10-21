@@ -1,4 +1,4 @@
-﻿package com.example.reisekostentracker.ui.components
+package com.example.reisekostentracker.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -52,7 +52,27 @@ enum class ChartMetricScope(val label: String, val shortLabel: String) {
     DAY("Pro Tag", "Ø Tag"),
     WEEK("Pro Woche", "Ø Woche"),
     MONTH("Pro Monat", "Ø Monat"),
-    YEAR("Pro Jahr", "Ø Jahr")
+    YEAR("Pro Jahr", "Ø Jahr");
+
+    fun label(isEn: Boolean): String = if (isEn) {
+        when (this) {
+            TOTAL -> "Total"
+            DAY -> "Per Day"
+            WEEK -> "Per Week"
+            MONTH -> "Per Month"
+            YEAR -> "Per Year"
+        }
+    } else label
+
+    fun shortLabel(isEn: Boolean): String = if (isEn) {
+        when (this) {
+            TOTAL -> "Total"
+            DAY -> "Ø Day"
+            WEEK -> "Ø Week"
+            MONTH -> "Ø Month"
+            YEAR -> "Ø Year"
+        }
+    } else shortLabel
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -61,7 +81,8 @@ fun CategoryPieChart(
     categoryStats: List<CategoryStat>,
     selectedScope: ChartMetricScope,
     onScopeSelected: (ChartMetricScope) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isEn: Boolean = false
 ) {
     val currencyFormat = remember {
         NumberFormat.getNumberInstance(Locale.GERMANY).apply {
@@ -99,14 +120,14 @@ fun CategoryPieChart(
                 .padding(18.dp)
         ) {
             Text(
-                text = "Kuchendiagramm: Kategorien-Verteilung",
+                text = if (isEn) "Pie Chart: Category Breakdown" else "Kuchendiagramm: Kategorien-Verteilung",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Wähle eine Ansicht, um die Verteilung nach Zeitraum zu berechnen:",
+                text = if (isEn) "Choose a timeframe to view cost distribution:" else "Wähle eine Ansicht, um die Verteilung nach Zeitraum zu berechnen:",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -123,7 +144,7 @@ fun CategoryPieChart(
                     FilterChip(
                         selected = selectedScope == scope,
                         onClick = { onScopeSelected(scope) },
-                        label = { Text(scope.label) }
+                        label = { Text(scope.label(isEn)) }
                     )
                 }
             }
@@ -175,7 +196,7 @@ fun CategoryPieChart(
                 // Center Information
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = selectedScope.shortLabel,
+                        text = selectedScope.shortLabel(isEn),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                         fontWeight = FontWeight.Bold
@@ -216,7 +237,7 @@ fun CategoryPieChart(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "${stat.category.name}: ${currencyFormat.format(value)} € (${String.format(Locale.GERMAN, "%.1f", pct)}%)",
+                            text = "${stat.category.localizedName(isEn)}: ${currencyFormat.format(value)} € (${String.format(Locale.GERMAN, "%.1f", pct)}%)",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium
                         )

@@ -34,7 +34,8 @@ import kotlin.math.max
 @Composable
 fun ExpensesBarChart(
     daysStats: List<DayStat>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isEn: Boolean = false
 ) {
     val maxAmount = max(1.0, daysStats.maxOfOrNull { it.totalAmount } ?: 1.0)
     val numberFormat = NumberFormat.getIntegerInstance(Locale.GERMANY)
@@ -52,7 +53,7 @@ fun ExpensesBarChart(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Ausgaben der letzten 7 Tage",
+                text = if (isEn) "Expenses of the Last 7 Days" else "Ausgaben der letzten 7 Tage",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -85,7 +86,7 @@ fun ExpensesBarChart(
                         // Amount above bar if > 0
                         if (day.totalAmount > 0) {
                             Text(
-                                text = "${numberFormat.format(day.totalAmount)}€",
+                                text = "${numberFormat.format(day.totalAmount)}â‚¬",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
@@ -116,9 +117,22 @@ fun ExpensesBarChart(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        val displayDay = if (isEn) {
+                            when (day.dayOfWeek.trim()) {
+                                "Mo" -> "Mon"
+                                "Di" -> "Tue"
+                                "Mi" -> "Wed"
+                                "Do" -> "Thu"
+                                "Fr" -> "Fri"
+                                "Sa" -> "Sat"
+                                "So" -> "Sun"
+                                else -> day.dayOfWeek
+                            }
+                        } else day.dayOfWeek
+
                         // Day label (e.g. Mo, Di, Mi)
                         Text(
-                            text = day.dayOfWeek,
+                            text = displayDay,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium,
@@ -130,4 +144,3 @@ fun ExpensesBarChart(
         }
     }
 }
-

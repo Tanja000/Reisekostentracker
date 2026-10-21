@@ -32,9 +32,6 @@ import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.ui.text.style.TextOverflow
-import com.example.reisekostentracker.model.ExpenseCategory
-import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -62,8 +59,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
+import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import com.example.reisekostentracker.ui.components.QuickAddConfirmDialog
 import com.example.reisekostentracker.ui.components.QuickAddPreset
 import com.example.reisekostentracker.ui.components.QuickAddPresets
@@ -81,14 +83,16 @@ fun BudgetsScreen(
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val lastLocationName by viewModel.lastLocationName.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isEn = currentLanguage.isEnglish
     val context = LocalContext.current
 
     val monthlyBudget by viewModel.monthlyBudget.collectAsState()
     var isEditBudgetDialogOpen by remember { mutableStateOf(false) }
     var activeQuickAdd by remember { mutableStateOf<QuickAddPreset?>(null) }
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
@@ -130,12 +134,12 @@ fun BudgetsScreen(
         ) {
             Column {
                 Text(
-                    text = "Budgets & Finanzen",
+                    text = "${AppStrings.navBudgets(currentLanguage)} & ${if (isEn) "Finance" else "Finanzen"}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Monatsbudget, Schnellbuchung & Wallets",
+                    text = if (isEn) "Monthly budget, quick add & wallets" else "Monatsbudget, Schnellbuchung & Wallets",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -144,7 +148,7 @@ fun BudgetsScreen(
             IconButton(onClick = { isEditBudgetDialogOpen = true }) {
                 Icon(
                     imageVector = Icons.Default.Edit,
-                    contentDescription = "Budget anpassen",
+                    contentDescription = AppStrings.adjustBudget(currentLanguage),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -183,7 +187,7 @@ fun BudgetsScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Monatsbudget",
+                            text = AppStrings.monthlyBudget(currentLanguage),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -224,7 +228,7 @@ fun BudgetsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Ausgegeben (${(budgetProgress * 100).toInt()}%)",
+                            text = "${AppStrings.spent(currentLanguage)} (${(budgetProgress * 100).toInt()}%)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -237,7 +241,7 @@ fun BudgetsScreen(
 
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = if (remainingBudget >= 0) "Restbudget" else "Überzogen",
+                            text = if (remainingBudget >= 0) AppStrings.remaining(currentLanguage) else (if (isEn) "Over budget" else "Überzogen"),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (remainingBudget >= 0) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.error
                         )
@@ -264,12 +268,12 @@ fun BudgetsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Tagesbudget ($daysRemaining Tage verbleibend):",
+                            text = "${AppStrings.dailyAllowance(currentLanguage)} ($daysRemaining ${if (isEn) "days remaining" else "Tage verbleibend"}):",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline
                         )
                         Text(
-                            text = "~ ${currencyFormat.format(dailyAllowance)} € / Tag",
+                            text = "~ ${currencyFormat.format(dailyAllowance)} € / ${if (isEn) "Day" else "Tag"}",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -283,12 +287,12 @@ fun BudgetsScreen(
 
         // 2. Quick-Add Section (1-Tap Bookings)
         Text(
-            text = "Schnellbuchung (1-Klick)",
+            text = if (isEn) "⚡ Quick Add (1-Tap)" else "⚡ Schnellbuchung (1-Klick)",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Häufige Alltagsausgaben sofort eintragen",
+            text = if (isEn) "Quickly record frequent everyday purchases" else "Häufige Alltagsausgaben sofort eintragen",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline
         )
@@ -296,40 +300,44 @@ fun BudgetsScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val p0 = QuickAddPresets.items[0]
             QuickAddButton(
-                icon = Icons.Default.LocalCafe,
-                label = "Kaffee & Snack",
-                amount = "3,80 €",
+                icon = p0.icon,
+                label = p0.localizedTitle(isEn),
+                amount = "${currencyFormat.format(p0.defaultAmount)} €",
                 modifier = Modifier.weight(1f),
-                onClick = { activeQuickAdd = QuickAddPresets.items[0] }
+                onClick = { activeQuickAdd = p0 }
             )
 
+            val p1 = QuickAddPresets.items[1]
             QuickAddButton(
-                icon = Icons.Default.Fastfood,
-                label = "Mittagessen",
-                amount = "12,50 €",
+                icon = p1.icon,
+                label = p1.localizedTitle(isEn),
+                amount = "${currencyFormat.format(p1.defaultAmount)} €",
                 modifier = Modifier.weight(1f),
-                onClick = { activeQuickAdd = QuickAddPresets.items[1] }
+                onClick = { activeQuickAdd = p1 }
             )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val p2 = QuickAddPresets.items[2]
             QuickAddButton(
-                icon = Icons.Default.ShoppingCart,
-                label = "Supermarkt",
-                amount = "35,00 €",
+                icon = p2.icon,
+                label = p2.localizedTitle(isEn),
+                amount = "${currencyFormat.format(p2.defaultAmount)} €",
                 modifier = Modifier.weight(1f),
-                onClick = { activeQuickAdd = QuickAddPresets.items[2] }
+                onClick = { activeQuickAdd = p2 }
             )
 
+            val p3 = QuickAddPresets.items[3]
             QuickAddButton(
-                icon = Icons.Default.DirectionsCar,
-                label = "Tanken / Ticket",
-                amount = "25,00 €",
+                icon = p3.icon,
+                label = p3.localizedTitle(isEn),
+                amount = "${currencyFormat.format(p3.defaultAmount)} €",
                 modifier = Modifier.weight(1f),
-                onClick = { activeQuickAdd = QuickAddPresets.items[3] }
+                onClick = { activeQuickAdd = p3 }
             )
         }
 
@@ -337,7 +345,7 @@ fun BudgetsScreen(
 
         // 3. Wallets & Payment Methods
         Text(
-            text = "Zahlungsarten & Wallets",
+            text = if (isEn) "Payment Methods & Wallets" else "Zahlungsarten & Wallets",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -353,11 +361,11 @@ fun BudgetsScreen(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 listOf(
-                    Triple("Karte", "Girokonto & Kreditkarten", Icons.Default.CreditCard),
-                    Triple("Bar", "Bargeld & Münzen", Icons.Default.Payments),
-                    Triple("Online", "PayPal, Online & Abos", Icons.Default.AttachMoney)
+                    Triple(if (isEn) "Card" else "Karte", if (isEn) "Checking account & credit cards" else "Girokonto & Kreditkarten", Icons.Default.CreditCard),
+                    Triple(if (isEn) "Cash" else "Bar", if (isEn) "Cash & coins" else "Bargeld & Münzen", Icons.Default.Payments),
+                    Triple(if (isEn) "Online" else "Online", if (isEn) "PayPal, online & subs" else "PayPal, Online & Abos", Icons.Default.AttachMoney)
                 ).forEachIndexed { idx, (key, sub, icon) ->
-                    val sum = payMethodTotals[key] ?: 0.0
+                    val sum = payMethodTotals[key] ?: (if (isEn && key == "Card") payMethodTotals["Karte"] else if (!isEn && key == "Karte") payMethodTotals["Card"] else null) ?: 0.0
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -405,7 +413,7 @@ fun BudgetsScreen(
             }
         }
 
-        // 4. Buchungen in diesem Monat (mit Löschfunktion)
+        // 4. Buchungen in diesem Monat (mit Edit & Löschfunktion)
         if (thisMonthExpenses.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
             Row(
@@ -414,19 +422,19 @@ fun BudgetsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Ausgaben in diesem Monat",
+                    text = if (isEn) "Expenses This Month" else "Ausgaben in diesem Monat",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${thisMonthExpenses.size} Posten",
+                    text = AppStrings.entriesCount(thisMonthExpenses.size, currentLanguage),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            val dateFormat = SimpleDateFormat("dd. MMM", Locale.GERMAN)
+            val dateFormat = SimpleDateFormat(if (isEn) "MMM dd" else "dd. MMM", if (isEn) Locale.US else Locale.GERMAN)
             val categories by viewModel.categories.collectAsState()
             val catMap = categories.associateBy { it.id }
 
@@ -440,7 +448,8 @@ fun BudgetsScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 4.dp)
+                        .clickable { viewModel.openEditExpenseDialog(exp) },
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
@@ -463,7 +472,7 @@ fun BudgetsScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "${cat.name} • ${dateFormat.format(Date(exp.date))}",
+                                text = "${AppStrings.categoryName(cat.id, cat.name, currentLanguage)} • ${dateFormat.format(Date(exp.date))}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -481,7 +490,7 @@ fun BudgetsScreen(
                         ) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Löschen",
+                                contentDescription = AppStrings.delete(currentLanguage),
                                 tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(17.dp)
                             )
@@ -496,7 +505,7 @@ fun BudgetsScreen(
         // 5. CSV Export Button
         OutlinedButton(
             onClick = {
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.GERMAN)
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val csvHeader = "ID;Titel;Betrag;Waehrung;Datum;Kategorie;Zahlart;Ort;Notiz\n"
                 val csvBody = expenses.joinToString("\n") { e ->
                     "${e.id};${e.title};${e.amount};${e.currency};${dateFormat.format(Date(e.date))};${e.categoryId};${e.paymentMethod};${e.locationName ?: ""};${e.notes}"
@@ -507,9 +516,9 @@ fun BudgetsScreen(
                     action = Intent.ACTION_SEND
                     putExtra(Intent.EXTRA_TEXT, fullCsv)
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "TrackMyCent-Ausgabenexport.csv")
+                    putExtra(Intent.EXTRA_SUBJECT, "SaveIQ-Export.csv")
                 }
-                val shareIntent = Intent.createChooser(sendIntent, "TrackMyCent CSV exportieren")
+                val shareIntent = Intent.createChooser(sendIntent, if (isEn) "Export SaveIQ CSV" else "SaveIQ CSV exportieren")
                 context.startActivity(shareIntent)
             },
             modifier = Modifier.fillMaxWidth(),
@@ -517,7 +526,7 @@ fun BudgetsScreen(
         ) {
             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Alle Finanzen als CSV exportieren")
+            Text(if (isEn) "Export all finances as CSV" else "Alle Finanzen als CSV exportieren")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -528,12 +537,12 @@ fun BudgetsScreen(
         var budgetText by remember { mutableStateOf(monthlyBudget.toInt().toString()) }
         AlertDialog(
             onDismissRequest = { isEditBudgetDialogOpen = false },
-            title = { Text("Monatsbudget festlegen", fontWeight = FontWeight.Bold) },
+            title = { Text(if (isEn) "Set Monthly Budget" else "Monatsbudget festlegen", fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = budgetText,
                     onValueChange = { budgetText = it },
-                    label = { Text("Budget in Euro (€)") },
+                    label = { Text(if (isEn) "Budget in Euro (€)" else "Budget in Euro (€)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -544,12 +553,12 @@ fun BudgetsScreen(
                     budgetText.toDoubleOrNull()?.let { viewModel.setMonthlyBudget(it) }
                     isEditBudgetDialogOpen = false
                 }) {
-                    Text("Speichern")
+                    Text(AppStrings.save(currentLanguage))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { isEditBudgetDialogOpen = false }) {
-                    Text("Abbrechen")
+                    Text(AppStrings.cancel(currentLanguage))
                 }
             }
         )
@@ -557,13 +566,15 @@ fun BudgetsScreen(
 
     // Quick-Add Confirmation & Customization Dialog
     activeQuickAdd?.let { preset ->
+        val bookedTitle = preset.localizedTitle(isEn)
         QuickAddConfirmDialog(
             preset = preset,
             currentLocationName = lastLocationName,
+            language = currentLanguage,
             onDismiss = { activeQuickAdd = null },
             onConfirm = { amount, method, location, feelingEmoji ->
                 viewModel.quickAddExpense(
-                    title = preset.title,
+                    title = bookedTitle,
                     amount = amount,
                     categoryId = preset.categoryId,
                     paymentMethod = method,
@@ -572,7 +583,8 @@ fun BudgetsScreen(
                 )
                 Toast.makeText(
                     context,
-                    "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} € in $location)",
+                    if (isEn) "✓ Booked: $bookedTitle (${currencyFormat.format(amount)} € in $location)"
+                    else "✓ Gebucht: $bookedTitle (${currencyFormat.format(amount)} € in $location)",
                     Toast.LENGTH_SHORT
                 ).show()
                 activeQuickAdd = null

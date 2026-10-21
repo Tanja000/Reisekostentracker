@@ -1,4 +1,4 @@
-﻿package com.example.reisekostentracker.ui.components
+package com.example.reisekostentracker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,15 +41,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.ExpenseCategory
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddEditCategoryDialog(
     initialCategory: ExpenseCategory?,
+    language: AppLanguage = AppLanguage.DE,
     onDismiss: () -> Unit,
     onSave: (name: String, iconName: String, colorValue: Long) -> Unit
 ) {
+    val isEn = language.isEnglish
     var name by remember { mutableStateOf(initialCategory?.name ?: "") }
     var selectedIconName by remember { mutableStateOf(initialCategory?.iconName ?: "local_activity") }
     var selectedColorValue by remember {
@@ -61,7 +65,8 @@ fun AddEditCategoryDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (initialCategory == null) "Neue Kategorie erstellen" else "Kategorie bearbeiten",
+                text = if (initialCategory == null) (if (isEn) "Create New Category" else "Neue Kategorie erstellen")
+                else (if (isEn) "Edit Category" else "Kategorie bearbeiten"),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -78,12 +83,12 @@ fun AddEditCategoryDialog(
                         name = it
                         nameError = false
                     },
-                    label = { Text("Kategoriename") },
-                    placeholder = { Text("z.B. Ausflüge, Souvenirs, Strand...") },
+                    label = { Text(if (isEn) "Category Name" else "Kategoriename") },
+                    placeholder = { Text(if (isEn) "e.g. Trips, Souvenirs, Beach..." else "z.B. Ausflüge, Souvenirs, Strand...") },
                     leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
                     isError = nameError,
                     supportingText = if (nameError) {
-                        { Text("Name darf nicht leer sein") }
+                        { Text(if (isEn) "Name cannot be empty" else "Name darf nicht leer sein") }
                     } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -93,7 +98,7 @@ fun AddEditCategoryDialog(
 
                 // Color Selection
                 Text(
-                    text = "Farbe wählen",
+                    text = if (isEn) "Choose Color" else "Farbe wählen",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -137,7 +142,7 @@ fun AddEditCategoryDialog(
 
                 // Icon Selection
                 Text(
-                    text = "Symbol wählen",
+                    text = if (isEn) "Choose Icon" else "Symbol wählen",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -182,7 +187,7 @@ fun AddEditCategoryDialog(
 
                 // Preview Badge
                 Text(
-                    text = "Vorschau",
+                    text = if (isEn) "Preview" else "Vorschau",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -191,7 +196,7 @@ fun AddEditCategoryDialog(
                 CategoryChip(
                     category = ExpenseCategory(
                         id = "preview",
-                        name = if (name.isNotBlank()) name else "Beispiel-Kategorie",
+                        name = if (name.isNotBlank()) name else (if (isEn) "Sample Category" else "Beispiel-Kategorie"),
                         iconName = selectedIconName,
                         colorValue = selectedColorValue
                     ),
@@ -209,12 +214,12 @@ fun AddEditCategoryDialog(
                     }
                 }
             ) {
-                Text(if (initialCategory == null) "Erstellen" else "Speichern")
+                Text(if (initialCategory == null) AppStrings.add(language) else AppStrings.save(language))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(AppStrings.cancel(language))
             }
         }
     )

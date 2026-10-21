@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.reisekostentracker.data.AiFrustrationReport
 import com.example.reisekostentracker.data.AiOpportunityInsight
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.CategoryStat
 import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import com.example.reisekostentracker.ui.components.CategoryPieChart
@@ -82,9 +83,11 @@ fun StatisticsScreen(
     val aiFrustrationReport by viewModel.aiFrustrationReport.collectAsState()
     val worldBankInflationRate by viewModel.worldBankInflationRate.collectAsState()
     val aiOpportunityInsights by viewModel.aiOpportunityInsights.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isEn = currentLanguage.isEnglish
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(isEn) {
+        NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
@@ -98,7 +101,7 @@ fun StatisticsScreen(
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Ausgaben-Statistiken",
+                    text = AppStrings.navStatistics(currentLanguage),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -112,7 +115,7 @@ fun StatisticsScreen(
                         FilterChip(
                             selected = timeFilter == filter,
                             onClick = { viewModel.setTimeFilter(filter) },
-                            label = { Text(filter.label) }
+                            label = { Text(filter.getLabel(currentLanguage)) }
                         )
                     }
                 }
@@ -142,19 +145,19 @@ fun StatisticsScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Keine Daten für diesen Filter",
+                            text = if (isEn) "No data for this filter" else "Keine Daten für diesen Filter",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Füge Ausgaben hinzu oder lade Beispieldaten, um Durchschnitte zu sehen.",
+                            text = if (isEn) "Add expenses or load sample data to see averages." else "Füge Ausgaben hinzu oder lade Beispieldaten, um Durchschnitte zu sehen.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedButton(onClick = { viewModel.seedDemoData() }) {
-                            Text("Reise-Beispieldaten laden")
+                            Text(AppStrings.loadSampleData(currentLanguage))
                         }
                     }
                 }
@@ -180,7 +183,7 @@ fun StatisticsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Gesamtausgaben",
+                                text = AppStrings.totalExpenses(currentLanguage),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             )
@@ -189,7 +192,7 @@ fun StatisticsScreen(
                                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
                             ) {
                                 Text(
-                                    text = "${statistics.daysSpan} Tage Zeitraum",
+                                    text = "${statistics.daysSpan} ${if (isEn) "days period" else "Tage Zeitraum"}",
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
@@ -214,12 +217,12 @@ fun StatisticsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "${statistics.expenseCount} erfasste Ausgaben",
+                                text = "${statistics.expenseCount} ${if (isEn) "recorded expenses" else "erfasste Ausgaben"}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                             )
                             Text(
-                                text = "${statistics.activeDaysCount} Tage mit Kosten",
+                                text = "${statistics.activeDaysCount} ${if (isEn) "active spending days" else "Tage mit Kosten"}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                             )
@@ -236,17 +239,17 @@ fun StatisticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         StatCard(
-                            title = "Ø pro Tag",
+                            title = if (isEn) "Ø per Day" else "Ø pro Tag",
                             value = statistics.dailyAverage,
-                            subtitle = "über ${statistics.daysSpan} Tage",
+                            subtitle = if (isEn) "over ${statistics.daysSpan} days" else "über ${statistics.daysSpan} Tage",
                             icon = Icons.Default.CalendarToday,
                             accentColor = Color(0xFF2196F3),
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            title = "Ø pro Woche",
+                            title = if (isEn) "Ø per Week" else "Ø pro Woche",
                             value = statistics.weeklyAverage,
-                            subtitle = "7-Tage-Schnitt",
+                            subtitle = if (isEn) "7-day average" else "7-Tage-Schnitt",
                             icon = Icons.Default.DateRange,
                             accentColor = Color(0xFF009688),
                             modifier = Modifier.weight(1f)
@@ -258,17 +261,17 @@ fun StatisticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         StatCard(
-                            title = "Ø pro Monat",
+                            title = if (isEn) "Ø per Month" else "Ø pro Monat",
                             value = statistics.monthlyAverage,
-                            subtitle = "Monatsdurchschnitt",
+                            subtitle = if (isEn) "Monthly average" else "Monatsdurchschnitt",
                             icon = Icons.Default.CalendarMonth,
                             accentColor = Color(0xFFFF9800),
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            title = "Ø pro Jahr",
+                            title = if (isEn) "Ø per Year" else "Ø pro Jahr",
                             value = statistics.yearlyAverage,
-                            subtitle = "Jahresdurchschnitt",
+                            subtitle = if (isEn) "Yearly average" else "Jahresdurchschnitt",
                             icon = Icons.Default.Timeline,
                             accentColor = Color(0xFF9C27B0),
                             modifier = Modifier.weight(1f)
@@ -309,12 +312,13 @@ fun StatisticsScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Spar-KI & Frust-Coach aktiv",
+                                text = if (isEn) "Save-AI & Coach Active" else "Spar-KI & Frust-Coach aktiv",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Detaillierte Frustkauf-Analysen & Weltbank-Zinseszins im Tab 'Spar-KI'.",
+                                text = if (isEn) "Detailed impulse buy analyses & World Bank compound interest in 'Save-AI' tab."
+                                else "Detaillierte Frustkauf-Analysen & Weltbank-Zinseszins im Tab 'Spar-KI'.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -329,7 +333,8 @@ fun StatisticsScreen(
                     CategoryPieChart(
                         categoryStats = statistics.categoryStats,
                         selectedScope = chartScope,
-                        onScopeSelected = { viewModel.setChartScope(it) }
+                        onScopeSelected = { viewModel.setChartScope(it) },
+                        isEn = isEn
                     )
                 }
             }
@@ -337,21 +342,30 @@ fun StatisticsScreen(
             // Bar Chart of recent days
             if (statistics.recentDaysStats.isNotEmpty()) {
                 item {
-                    ExpensesBarChart(daysStats = statistics.recentDaysStats)
+                    ExpensesBarChart(
+                        daysStats = statistics.recentDaysStats,
+                        isEn = isEn
+                    )
                 }
             }
 
             // Weekday spending chart (Mo-So)
             if (statistics.weekdayStats.isNotEmpty()) {
                 item {
-                    WeekdaySpendingChart(weekdayStats = statistics.weekdayStats)
+                    WeekdaySpendingChart(
+                        weekdayStats = statistics.weekdayStats,
+                        isEn = isEn
+                    )
                 }
             }
 
             // Payment methods breakdown
             if (statistics.paymentMethodStats.isNotEmpty()) {
                 item {
-                    PaymentMethodsCard(paymentStats = statistics.paymentMethodStats)
+                    PaymentMethodsCard(
+                        paymentStats = statistics.paymentMethodStats,
+                        isEn = isEn
+                    )
                 }
             }
 
@@ -373,9 +387,9 @@ fun StatisticsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -387,7 +401,7 @@ fun StatisticsScreen(
                             Spacer(modifier = Modifier.width(14.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Höchste Einzelausgabe",
+                                    text = if (isEn) "Highest Single Expense" else "Höchste Einzelausgabe",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -403,18 +417,6 @@ fun StatisticsScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.secondary
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = { statistics.highestExpense?.let { viewModel.deleteExpense(it.id) } },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Löschen",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
                         }
                     }
                 }
@@ -424,7 +426,7 @@ fun StatisticsScreen(
             if (statistics.categoryStats.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Kategorien-Details",
+                        text = if (isEn) "Category Details" else "Kategorien-Details",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -434,7 +436,8 @@ fun StatisticsScreen(
                 items(statistics.categoryStats) { catStat ->
                     CategoryStatItem(
                         catStat = catStat,
-                        currencyFormat = currencyFormat
+                        currencyFormat = currencyFormat,
+                        isEn = isEn
                     )
                 }
             }
@@ -878,7 +881,8 @@ fun WorldBankOpportunityCard(
 @Composable
 fun CategoryStatItem(
     catStat: CategoryStat,
-    currencyFormat: NumberFormat
+    currencyFormat: NumberFormat,
+    isEn: Boolean = false
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -900,12 +904,12 @@ fun CategoryStatItem(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = catStat.category.name,
+                        text = catStat.category.localizedName(isEn),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "${catStat.count} Einträge • Ø ${currencyFormat.format(catStat.averagePerExpense)} €",
+                        text = "${catStat.count} ${if (isEn) "entries" else "Einträge"} • Ø ${currencyFormat.format(catStat.averagePerExpense)} €",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
