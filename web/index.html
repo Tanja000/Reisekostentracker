@@ -343,7 +343,7 @@
     .content-area {
       flex: 1;
       overflow-y: auto;
-      padding: 14px 16px 85px;
+      padding: 14px 16px 120px;
     }
     .content-area::-webkit-scrollbar { width: 4px; }
     .content-area::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 4px; }
@@ -1043,12 +1043,116 @@
         </div>
         <div style="font-size:18px; font-weight:800; margin-bottom:8px;">GPS-Standort erfassen?</div>
         <div style="font-size:13px; color:var(--on-surface-variant); line-height:1.5;">
-          TrackMyCent kann Ausgaben automatisch den Ort zuweisen, an dem du bezahlt hast. Auf der Karte siehst du so genau, wo dein Geld hingeht.
+          SaveIQ kann Ausgaben automatisch den Ort zuweisen, an dem du bezahlt hast. Auf der Karte siehst du so genau, wo dein Geld hingeht.
         </div>
         <div class="btn-group" style="margin-top:20px;">
           <button class="btn btn-secondary" onclick="handleGpsConsent(false)">Ohne Standort</button>
           <button class="btn btn-primary" onclick="handleGpsConsent(true)">Erlauben</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HACK 1 MODAL: 48h WUNSCHKAUF-PAUSE -->
+  <div class="modal-overlay" id="hack1Modal">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:22px;">⏱️</span>
+          <span style="font-weight:800; font-size:16px;">48h-Wunschkauf-Pause</span>
+        </div>
+        <button class="icon-btn" onclick="closeModal('hack1Modal')">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div style="font-size:12px; color:var(--outline); margin-bottom:12px;">
+        Studien zeigen: 70 % aller Spontankäufe verlieren nach 48 Stunden ihren Reiz. Trage hier einen Wunschkauf ein, den du gerade tätigen wolltest:
+      </div>
+      <div class="form-group">
+        <label>Was möchtest du kaufen?</label>
+        <input type="text" class="form-control" id="wishTitleInput" placeholder="z.B. Sneaker, Kopfhörer, Gadget...">
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <input type="number" step="0.01" class="form-control" id="wishPriceInput" placeholder="Preis in € (z.B. 49.99)">
+        <button class="btn btn-primary" style="white-space:nowrap; padding:0 14px;" onclick="addWishItem()">+ Pausieren</button>
+      </div>
+
+      <div style="font-size:12px; font-weight:800; color:var(--on-surface); margin-bottom:6px;">Laufende Bedenkzeiten:</div>
+      <div id="wishListContainer" style="max-height:180px; overflow-y:auto; margin-bottom:14px;"></div>
+
+      <button class="btn btn-secondary" style="width:100%;" onclick="closeModal('hack1Modal')">Schließen</button>
+    </div>
+  </div>
+
+  <!-- HACK 2 MODAL: FRUST-NOTBREMSE (HALT) -->
+  <div class="modal-overlay" id="hack2Modal">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:22px;">🚶</span>
+          <span style="font-weight:800; font-size:16px;">Frust-Notbremse (HALT-Prinzip)</span>
+        </div>
+        <button class="icon-btn" onclick="closeModal('hack2Modal')">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div style="font-size:12px; color:var(--outline); margin-bottom:12px;">
+        Bevor du Geld ausgibst, prüfe das psychologische HALT-Muster:
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+        <div style="background:var(--surface-variant); padding:8px 10px; border-radius:10px; font-size:12px;">
+          <b>🍔 Hungry (Hungrig)?</b><br><span style="color:var(--outline);">Ein kleiner Snack stabilisiert den Blutzucker und stoppt den Kaufreiz.</span>
+        </div>
+        <div style="background:var(--surface-variant); padding:8px 10px; border-radius:10px; font-size:12px;">
+          <b>😡 Angry (Wütend)?</b><br><span style="color:var(--outline);">Frustabbau durch Dopamin? Ein 15-Minuten-Spaziergang baut Cortisol ab.</span>
+        </div>
+        <div style="background:var(--surface-variant); padding:8px 10px; border-radius:10px; font-size:12px;">
+          <b>🥱 Lonely / Bored (Langeweile)?</b><br><span style="color:var(--outline);">Shopping als Zeitvertreib? Ruf stattdessen eine Freundin oder Freund an.</span>
+        </div>
+        <div style="background:var(--surface-variant); padding:8px 10px; border-radius:10px; font-size:12px;">
+          <b>😴 Tired (Müde)?</b><br><span style="color:var(--outline);">Nach 21 Uhr ist deine Willenskraft erschöpft. Erst schlafen, morgen entscheiden!</span>
+        </div>
+      </div>
+      <div style="background:rgba(22,163,74,0.1); color:#15803d; padding:10px; border-radius:12px; font-size:11.5px; font-weight:700; margin-bottom:12px; text-align:center;">
+        🚶 Tipp: 15 Minuten frische Luft lösen 95 % aller emotionalen Kaufimpulse auf.
+      </div>
+      <button class="btn btn-primary" style="width:100%; background:#16a34a;" onclick="closeModal('hack2Modal')">Frustkauf abgewendet!</button>
+    </div>
+  </div>
+
+  <!-- HACK 3 MODAL: 30€ BAR-BELOHNUNG -->
+  <div class="modal-overlay" id="hack3Modal">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:22px;">💵</span>
+          <span style="font-weight:800; font-size:16px;">30€ Bar-Belohnungs-Umschlag</span>
+        </div>
+        <button class="icon-btn" onclick="closeModal('hack3Modal')">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div style="font-size:12px; color:var(--outline); margin-bottom:12px;">
+        Völliger Verzicht führt zu Frust-Rückfällen. Reserviere jeden Monat exakt 30 € in bar für Spontanausgaben – strikt ohne Karte!
+      </div>
+      <div style="background:var(--surface-variant); border-radius:12px; padding:12px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="font-size:12px; color:var(--outline);">Monatsbudget: 30,00 €</span>
+          <b id="envelopeRemainingLabel" style="font-size:13px; color:#16a34a;">18,50 € übrig</b>
+        </div>
+        <div style="width:100%; height:8px; background:rgba(0,0,0,0.1); border-radius:4px; overflow:hidden; margin-bottom:6px;">
+          <div id="envelopeProgressBar" style="width:38%; height:100%; background:#16a34a; border-radius:4px; transition:width 0.2s;"></div>
+        </div>
+        <div id="envelopeSpentLabel" style="font-size:10.5px; color:var(--outline);">Verbraucht: 11,50 €</div>
+      </div>
+      <div style="font-size:12px; font-weight:800; margin-bottom:6px;">Schnellabzug für Belohnung:</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:14px;">
+        <button class="btn btn-secondary" onclick="deductCashEnvelope(3.50)">☕ Kaffee (3,50 €)</button>
+        <button class="btn btn-secondary" onclick="deductCashEnvelope(5.00)">🍫 Snack (5,00 €)</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="resetCashEnvelope()">Reset (30 €)</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="closeModal('hack3Modal')">Fertig</button>
       </div>
     </div>
   </div>
@@ -1877,7 +1981,14 @@
 
     // --- TAB 2: SPAR-KI (FRUSTKAUF & WELTBANK SPARDETAILS) ---
     let selectedMonthlySavings = 50;
+    let hourlyWage = 20.0;
     let aiQuoteIdx = 0;
+    let wishList = [
+      { id: "1", title: "Kabellose Kopfhörer ANC", price: 89.0, hours: 31 },
+      { id: "2", title: "Trend-Sneaker Limited", price: 119.0, hours: 14 }
+    ];
+    let cashEnvelopeSpent = 11.50;
+
     const aiQuotesList = [
       "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
       "„Online-Warenkörbe um 23:00 Uhr sind selten eine rationale Lebensentscheidung.“",
@@ -1892,8 +2003,97 @@
       renderSavingsAiScreen(document.getElementById('mainContent'));
     }
 
+    function setHourlyWage(wage) {
+      hourlyWage = wage;
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
     function rollAiQuote() {
       aiQuoteIdx = (aiQuoteIdx + 1) % aiQuotesList.length;
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
+    // Modal Handlers for the 3 Hacks
+    function openHack1Modal() {
+      renderWishListItems();
+      openModal('hack1Modal');
+    }
+
+    function renderWishListItems() {
+      const container = document.getElementById('wishListContainer');
+      if (!container) return;
+      if (wishList.length === 0) {
+        container.innerHTML = '<div style="font-size:11.5px; color:var(--outline); padding:8px 0;">Keine aktiven Wünsche in Bedenkzeit.</div>';
+        return;
+      }
+      container.innerHTML = wishList.map(item => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-variant); padding:8px 10px; border-radius:10px; margin-bottom:6px;">
+          <div>
+            <div style="font-size:12.5px; font-weight:800;">${item.title}</div>
+            <div style="font-size:11px; color:var(--primary); font-weight:700;">${formatCurrency(item.price)} \u2022 Noch ${item.hours}h Bedenkzeit</div>
+          </div>
+          <button class="icon-btn" style="color:#16a34a;" onclick="removeWishItem('${item.id}')" title="Gespart! Abbrechen">
+            <span class="material-symbols-rounded">check_circle</span>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function addWishItem() {
+      const titleInput = document.getElementById('wishTitleInput');
+      const priceInput = document.getElementById('wishPriceInput');
+      const title = titleInput ? titleInput.value.trim() : '';
+      const price = priceInput ? parseFloat(priceInput.value) : 0;
+      if (title && price > 0) {
+        wishList.unshift({ id: String(Date.now()), title, price, hours: 48 });
+        if (titleInput) titleInput.value = '';
+        if (priceInput) priceInput.value = '';
+        renderWishListItems();
+        renderSavingsAiScreen(document.getElementById('mainContent'));
+      }
+    }
+
+    function removeWishItem(id) {
+      wishList = wishList.filter(item => item.id !== id);
+      renderWishListItems();
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
+    function openHack2Modal() {
+      openModal('hack2Modal');
+    }
+
+    function openHack3Modal() {
+      updateCashEnvelopeUI();
+      openModal('hack3Modal');
+    }
+
+    function updateCashEnvelopeUI() {
+      const remaining = Math.max(0, 30.0 - cashEnvelopeSpent);
+      const progress = Math.min(100, Math.round((cashEnvelopeSpent / 30.0) * 100));
+      const remLabel = document.getElementById('envelopeRemainingLabel');
+      const spentLabel = document.getElementById('envelopeSpentLabel');
+      const bar = document.getElementById('envelopeProgressBar');
+      if (remLabel) {
+        remLabel.innerText = formatCurrency(remaining) + ' übrig';
+        remLabel.style.color = remaining > 5 ? '#16a34a' : '#dc2626';
+      }
+      if (spentLabel) spentLabel.innerText = 'Verbraucht: ' + formatCurrency(cashEnvelopeSpent);
+      if (bar) {
+        bar.style.width = progress + '%';
+        bar.style.background = remaining > 5 ? '#16a34a' : '#dc2626';
+      }
+    }
+
+    function deductCashEnvelope(amt) {
+      cashEnvelopeSpent = Math.min(30.0, cashEnvelopeSpent + amt);
+      updateCashEnvelopeUI();
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
+    function resetCashEnvelope() {
+      cashEnvelopeSpent = 0.0;
+      updateCashEnvelopeUI();
       renderSavingsAiScreen(document.getElementById('mainContent'));
     }
 
@@ -1917,6 +2117,10 @@
       if (consciousPct < 70) statusTitle = "Impulsiver Entdecker";
       else if (consciousPct < 85) statusTitle = "Bewusster Genießer";
 
+      const workHoursLost = hourlyWage > 0 ? (totalFrust / hourlyWage).toFixed(1) : 0;
+      const workDaysLost = (workHoursLost / 8.0).toFixed(1);
+      const remainingCash = Math.max(0, 30.0 - cashEnvelopeSpent);
+
       let html = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <div>
@@ -1924,7 +2128,7 @@
               <span>Spar-KI & Sparfuchs</span>
               <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px;">AICore</span>
             </div>
-            <div style="font-size:12px; color:var(--outline);">Intelligente Frustkauf-Vermeidung & Zinseszins-Effekt</div>
+            <div style="font-size:12px; color:var(--outline);">Intelligente Frustkauf-Vermeidung & Vermögens-Effekt</div>
           </div>
         </div>
 
@@ -1957,7 +2161,42 @@
           </div>
         </div>
 
-        <!-- INTERACTIVE WAS-WÄRE-WENN CALCULATOR -->
+        <!-- RAFFINIERTES FEATURE 1: LEBENSZEIT- & ARBEITSSTUNDEN-RECHNER -->
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="color:#d97706; font-size:20px;">work_history</span>
+              <span style="font-size:13.5px; font-weight:800;">Lebenszeit- & Arbeitsrechner</span>
+            </div>
+            <span style="background:rgba(217,119,6,0.1); color:#d97706; font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:6px;">
+              Life Energy
+            </span>
+          </div>
+          <div style="font-size:11px; color:var(--outline); margin-bottom:8px;">
+            Wie viele Arbeitsstunden kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:
+          </div>
+
+          <!-- Hourly Wage Chips -->
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            ${[15, 20, 25, 35].map(w => `
+              <button onclick="setHourlyWage(${w})" style="border:none; cursor:pointer; padding:6px 0; border-radius:10px; font-weight:800; font-size:12px; transition:all 0.15s; ${hourlyWage === w ? 'background:#d97706; color:#fff;' : 'background:var(--surface-variant); color:var(--on-surface);'}">
+                ${w} €/h
+              </button>
+            `).join('')}
+          </div>
+
+          <div style="background:var(--surface-variant); border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:10px; color:var(--outline); font-weight:700;">Verlorene Arbeitszeit:</div>
+              <div style="font-size:15px; font-weight:900; color:#dc2626;">${workHoursLost} Stunden</div>
+            </div>
+            <span style="background:#fee2e2; color:#dc2626; font-size:11px; font-weight:800; padding:4px 8px; border-radius:8px;">
+              \u2248 ${workDaysLost} Arbeitstage
+            </span>
+          </div>
+        </div>
+
+        <!-- RAFFINIERTES FEATURE 2: INTERAKTIVER WAS-WÄRE-WENN CALCULATOR -->
         <div class="card" style="margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div style="display:flex; align-items:center; gap:6px;">
@@ -2014,23 +2253,56 @@
           </div>
         </div>
 
-        <!-- 3 SNACKABLE AI QUICK-HACKS -->
-        <div style="font-size:12.5px; font-weight:800; color:var(--outline); margin-bottom:8px;">3 schnelle Spar-Hacks</div>
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:14px;">
-          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
-            <div style="font-size:20px; margin-bottom:3px;">⏱️</div>
-            <div style="font-size:11px; font-weight:800;">48h-Pause</div>
-            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">2 Tage warten vor dem Klick</div>
+        <!-- 3 INTERAKTIVE & ANKLICKBARE SPAR-HACKS (Als schöne Klick-Karten!) -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:800; color:var(--on-surface);">3 interaktive Spar-Hacks</span>
+          <span style="font-size:11px; font-weight:700; color:var(--primary);">Tippen zum Öffnen</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+          <!-- Hack 1 -->
+          <div class="card" style="margin-bottom:0; padding:12px; cursor:pointer; display:flex; align-items:center; gap:10px;" onclick="openHack1Modal()">
+            <div style="width:38px; height:38px; border-radius:10px; background:rgba(37,99,235,0.1); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              ⏱️
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <b style="font-size:13px;">48-Stunden Wunsch-Pause</b>
+                <span style="background:var(--primary-container); color:var(--primary); font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px;">${wishList.length} aktiv</span>
+              </div>
+              <div style="font-size:11px; color:var(--outline); margin-top:2px;">Spontankäufe 2 Tage pausieren. Tippen, um Wunschkauf zu stoppen.</div>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:20px;">chevron_right</span>
           </div>
-          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
-            <div style="font-size:20px; margin-bottom:3px;">🚶</div>
-            <div style="font-size:11px; font-weight:800;">Schritte</div>
-            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">Frust weglaufen statt kaufen</div>
+
+          <!-- Hack 2 -->
+          <div class="card" style="margin-bottom:0; padding:12px; cursor:pointer; display:flex; align-items:center; gap:10px;" onclick="openHack2Modal()">
+            <div style="width:38px; height:38px; border-radius:10px; background:rgba(22,163,74,0.1); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              🚶
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <b style="font-size:13px;">Frust-Notbremse (HALT)</b>
+                <span style="background:rgba(22,163,74,0.15); color:#15803d; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px;">Anti-Dopamin</span>
+              </div>
+              <div style="font-size:11px; color:var(--outline); margin-top:2px;">Hungrig, wütend, einsam oder müde? 15-Minuten-Gehirn-Reset starten.</div>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:20px;">chevron_right</span>
           </div>
-          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
-            <div style="font-size:20px; margin-bottom:3px;">💵</div>
-            <div style="font-size:11px; font-weight:800;">30€ Limit</div>
-            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">Impulskäufe strikt deckeln</div>
+
+          <!-- Hack 3 -->
+          <div class="card" style="margin-bottom:0; padding:12px; cursor:pointer; display:flex; align-items:center; gap:10px;" onclick="openHack3Modal()">
+            <div style="width:38px; height:38px; border-radius:10px; background:rgba(217,119,6,0.1); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              💵
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <b style="font-size:13px;">30€ Bar-Umschlag</b>
+                <span style="background:rgba(217,119,6,0.15); color:#b45309; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px;">${formatCurrency(remainingCash)} übrig</span>
+              </div>
+              <div style="font-size:11px; color:var(--outline); margin-top:2px;">Monatsgrenze für Frust- & Belohnungskäufe. Tippen zum Verwalten.</div>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:20px;">chevron_right</span>
           </div>
         </div>
 
@@ -2039,6 +2311,44 @@
           Erfasste Fehl- & Frustkäufe (${frustList.length})
         </div>
       `;
+
+      if (frustList.length === 0) {
+        html += `
+          <div class="card" style="text-align:center; padding:20px 14px; color:var(--outline);">
+            <span class="material-symbols-rounded" style="font-size:32px; color:#16a34a; margin-bottom:4px;">sentiment_satisfied</span>
+            <div style="font-size:12.5px; font-weight:800; color:var(--on-surface);">Keine Frustkäufe vorhanden</div>
+            <div style="font-size:11px; margin-top:2px;">Wähle beim Eintragen von Ausgaben ein Emoji, um deine Emotionen festzuhalten.</div>
+          </div>
+        `;
+      } else {
+        html += frustList.map(exp => {
+          const cat = getCategory(exp.categoryId);
+          return `
+            <div class="card" style="display:flex; align-items:center; gap:12px; padding:10px 12px; margin-bottom:8px;">
+              <div style="font-size:22px; width:38px; height:38px; border-radius:12px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                ${exp.feelingEmoji || '🤦'}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:13.5px; font-weight:900; color:#dc2626; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                    <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
+                      <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
+                    </button>
+                  </div>
+                </div>
+                <div style="font-size:11px; color:var(--outline); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  <span style="color:${cat.color}; font-weight:700;">${cat.name}</span> \u2022 ${formatDate(exp.date)} ${exp.location ? '\u2022 📍 ' + exp.location : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
 
       if (frustList.length === 0) {
         html += `
