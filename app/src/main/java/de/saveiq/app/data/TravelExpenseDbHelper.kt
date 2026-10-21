@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.data
+package de.saveiq.app.data
 
 import android.content.ContentValues
 import android.content.Context
@@ -15,7 +15,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
 
     companion object {
         const val DATABASE_NAME = "reisekosten.db"
-        const val DATABASE_VERSION = 4
+        const val DATABASE_VERSION = 5
 
         // Table Categories
         const val TABLE_CATEGORIES = "categories"
@@ -64,6 +64,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         const val COL_REC_LAST_EXEC = "last_execution_date"
         const val COL_REC_NEXT_DUE = "next_due_date"
         const val COL_REC_PAYMENT_METHOD = "payment_method"
+        const val COL_REC_LAT = "latitude"
+        const val COL_REC_LNG = "longitude"
         const val COL_REC_LOC_NAME = "location_name"
         const val COL_REC_NOTES = "notes"
         const val COL_REC_IS_ACTIVE = "is_active"
@@ -130,6 +132,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                 $COL_REC_LAST_EXEC INTEGER NOT NULL DEFAULT 0,
                 $COL_REC_NEXT_DUE INTEGER NOT NULL,
                 $COL_REC_PAYMENT_METHOD TEXT NOT NULL DEFAULT 'Dauerauftrag',
+                $COL_REC_LAT REAL,
+                $COL_REC_LNG REAL,
                 $COL_REC_LOC_NAME TEXT,
                 $COL_REC_NOTES TEXT,
                 $COL_REC_IS_ACTIVE INTEGER NOT NULL DEFAULT 1
@@ -179,6 +183,12 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                 )
                 """.trimIndent()
             )
+        }
+        if (oldVersion < 5) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_RECURRING ADD COLUMN $COL_REC_LAT REAL")
+                db.execSQL("ALTER TABLE $TABLE_RECURRING ADD COLUMN $COL_REC_LNG REAL")
+            } catch (_: Exception) {}
         }
     }
 
@@ -386,6 +396,10 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             while (it.moveToNext()) {
                 val locIndex = it.getColumnIndexOrThrow(COL_REC_LOC_NAME)
                 val locName = if (it.isNull(locIndex)) null else it.getString(locIndex)
+                val latIndex = it.getColumnIndex(COL_REC_LAT)
+                val lngIndex = it.getColumnIndex(COL_REC_LNG)
+                val lat = if (latIndex >= 0 && !it.isNull(latIndex)) it.getDouble(latIndex) else null
+                val lng = if (lngIndex >= 0 && !it.isNull(lngIndex)) it.getDouble(lngIndex) else null
                 val intervalStr = it.getString(it.getColumnIndexOrThrow(COL_REC_INTERVAL)) ?: "MONTHLY"
                 list.add(
                     RecurringExpense(
@@ -399,6 +413,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                         lastExecutionDate = it.getLong(it.getColumnIndexOrThrow(COL_REC_LAST_EXEC)),
                         nextDueDate = it.getLong(it.getColumnIndexOrThrow(COL_REC_NEXT_DUE)),
                         paymentMethod = it.getString(it.getColumnIndexOrThrow(COL_REC_PAYMENT_METHOD)) ?: "Dauerauftrag",
+                        latitude = lat,
+                        longitude = lng,
                         locationName = locName,
                         notes = it.getString(it.getColumnIndexOrThrow(COL_REC_NOTES)) ?: "",
                         isActive = it.getInt(it.getColumnIndexOrThrow(COL_REC_IS_ACTIVE)) == 1
@@ -422,6 +438,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             put(COL_REC_LAST_EXEC, rec.lastExecutionDate)
             put(COL_REC_NEXT_DUE, rec.nextDueDate)
             put(COL_REC_PAYMENT_METHOD, rec.paymentMethod)
+            put(COL_REC_LAT, rec.latitude)
+            put(COL_REC_LNG, rec.longitude)
             put(COL_REC_LOC_NAME, rec.locationName)
             put(COL_REC_NOTES, rec.notes)
             put(COL_REC_IS_ACTIVE, if (rec.isActive) 1 else 0)
@@ -441,6 +459,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             put(COL_REC_LAST_EXEC, rec.lastExecutionDate)
             put(COL_REC_NEXT_DUE, rec.nextDueDate)
             put(COL_REC_PAYMENT_METHOD, rec.paymentMethod)
+            put(COL_REC_LAT, rec.latitude)
+            put(COL_REC_LNG, rec.longitude)
             put(COL_REC_LOC_NAME, rec.locationName)
             put(COL_REC_NOTES, rec.notes)
             put(COL_REC_IS_ACTIVE, if (rec.isActive) 1 else 0)

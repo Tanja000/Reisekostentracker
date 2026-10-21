@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.ui.viewmodel
+package de.saveiq.app.ui.viewmodel
 
 import android.Manifest
 import android.app.Application
@@ -532,6 +532,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                             lastExecutionDate = date,
                             nextDueDate = nextDue,
                             paymentMethod = paymentMethod,
+                            latitude = resolved.latitude,
+                            longitude = resolved.longitude,
                             locationName = resolved.name,
                             notes = notes,
                             isActive = true
@@ -552,30 +554,58 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         locationName: String? = null,
         notes: String = ""
     ) {
-        val now = System.currentTimeMillis()
-        val cal = Calendar.getInstance().apply { timeInMillis = now }
-        when (interval) {
-            RecurringInterval.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
-            RecurringInterval.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
-            RecurringInterval.MONTHLY -> cal.add(Calendar.MONTH, 1)
-            RecurringInterval.YEARLY -> cal.add(Calendar.YEAR, 1)
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val enteredName = locationName?.trim()?.ifEmpty { null }
+            val rawName = enteredName ?: _lastLocationName.value ?: "Karlsruhe"
+            val resolved = GeoPlaceLibrary.resolveLocation(rawName, app)
+
+            val now = System.currentTimeMillis()
+            val cal = Calendar.getInstance().apply { timeInMillis = now }
+            when (interval) {
+                RecurringInterval.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
+                RecurringInterval.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                RecurringInterval.MONTHLY -> cal.add(Calendar.MONTH, 1)
+                RecurringInterval.YEARLY -> cal.add(Calendar.YEAR, 1)
+            }
+            val rec = RecurringExpense(
+                id = "rec_" + java.util.UUID.randomUUID().toString().take(8),
+                title = title,
+                amount = amount,
+                currency = "EUR",
+                categoryId = categoryId,
+                interval = interval,
+                startDate = now,
+                lastExecutionDate = now,
+                nextDueDate = cal.timeInMillis,
+                paymentMethod = paymentMethod,
+                latitude = resolved.latitude,
+                longitude = resolved.longitude,
+                locationName = resolved.name,
+                notes = notes,
+                isActive = true
+            )
+
+            // Immediately create the active Expense booking so it appears in ALL tabs:
+            // Ausgaben, Statistiken, Karte, Budgets, Spar-KI!
+            val initialExpense = Expense(
+                id = java.util.UUID.randomUUID().toString(),
+                title = title,
+                amount = amount,
+                currency = "EUR",
+                categoryId = categoryId,
+                tripId = null,
+                date = now,
+                notes = if (notes.isNotBlank()) "$notes (Dauerauftrag)" else "Dauerauftrag (${interval.labelDe})",
+                paymentMethod = paymentMethod,
+                latitude = resolved.latitude,
+                longitude = resolved.longitude,
+                locationName = resolved.name,
+                feelingEmoji = null
+            )
+
+            repository.addRecurringExpenseWithInitialBooking(rec, initialExpense)
         }
-        val rec = RecurringExpense(
-            id = "rec_" + java.util.UUID.randomUUID().toString().take(8),
-            title = title,
-            amount = amount,
-            currency = "EUR",
-            categoryId = categoryId,
-            interval = interval,
-            startDate = now,
-            lastExecutionDate = now,
-            nextDueDate = cal.timeInMillis,
-            paymentMethod = paymentMethod,
-            locationName = locationName,
-            notes = notes,
-            isActive = true
-        )
-        repository.addRecurringExpense(rec)
     }
 
     fun deleteRecurringExpense(id: String) {

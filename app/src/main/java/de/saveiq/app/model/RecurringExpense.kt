@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.model
+package de.saveiq.app.model
 
 import java.util.UUID
 
@@ -27,6 +27,8 @@ data class RecurringExpense(
     val lastExecutionDate: Long = 0L,
     val nextDueDate: Long = System.currentTimeMillis(),
     val paymentMethod: String = "Dauerauftrag",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val locationName: String? = null,
     val notes: String = "",
     val isActive: Boolean = true

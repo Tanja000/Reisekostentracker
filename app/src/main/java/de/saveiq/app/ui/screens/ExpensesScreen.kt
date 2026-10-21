@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.ui.screens
+package de.saveiq.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -702,6 +703,7 @@ fun ExpensesScreen(
         var recAmountText by remember { mutableStateOf("") }
         var recCategory by remember { mutableStateOf(categories.firstOrNull()?.id ?: "cat_sonstiges") }
         var recInterval by remember { mutableStateOf(RecurringInterval.MONTHLY) }
+        var recLocation by remember { mutableStateOf(lastLocationName ?: "Karlsruhe") }
         var recNotes by remember { mutableStateOf("") }
 
         AlertDialog(
@@ -784,6 +786,19 @@ fun ExpensesScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     OutlinedTextField(
+                        value = recLocation,
+                        onValueChange = { recLocation = it },
+                        label = { Text(if (currentLanguage.isEnglish) "Location (e.g. City or GPS)" else "Ort (z.B. Stadt oder GPS)") },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
                         value = recNotes,
                         onValueChange = { recNotes = it },
                         label = { Text(if (currentLanguage.isEnglish) "Notes (optional)" else "Notizen (optional)") },
@@ -802,12 +817,13 @@ fun ExpensesScreen(
                                 amount = amount,
                                 categoryId = recCategory,
                                 interval = recInterval,
+                                locationName = recLocation.trim().ifEmpty { null },
                                 notes = recNotes.trim()
                             )
                             showAddRecurringDialog = false
                             Toast.makeText(
                                 context,
-                                if (currentLanguage.isEnglish) "✓ Recurring expense saved!" else "✓ Dauerauftrag gespeichert!",
+                                if (currentLanguage.isEnglish) "✓ Recurring expense saved & booked in all tabs!" else "✓ Dauerauftrag gespeichert & in allen Tabs gebucht!",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }

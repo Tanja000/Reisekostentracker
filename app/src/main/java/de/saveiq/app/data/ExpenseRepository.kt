@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.data
+package de.saveiq.app.data
 
 import android.content.Context
 import de.saveiq.app.model.Expense
@@ -101,6 +101,8 @@ class ExpenseRepository(context: Context) {
                 lastExecutionDate = now,
                 nextDueDate = nextMonth,
                 paymentMethod = "Dauerauftrag",
+                latitude = 48.1400,
+                longitude = 11.5650,
                 locationName = "Wohnung",
                 notes = "Monatliche Warmmiete"
             ),
@@ -115,6 +117,8 @@ class ExpenseRepository(context: Context) {
                 lastExecutionDate = now,
                 nextDueDate = nextMonth,
                 paymentMethod = "Online",
+                latitude = 48.1300,
+                longitude = 11.5900,
                 locationName = "Gym Studio",
                 notes = "Monatsbeitrag"
             ),
@@ -129,6 +133,8 @@ class ExpenseRepository(context: Context) {
                 lastExecutionDate = now,
                 nextDueDate = nextMonth,
                 paymentMethod = "Online",
+                latitude = 48.1400,
+                longitude = 11.5700,
                 locationName = "Online",
                 notes = "Streaming Bundle"
             )
@@ -158,8 +164,8 @@ class ExpenseRepository(context: Context) {
                     date = due,
                     notes = if (rec.notes.isNotBlank()) "${rec.notes} (Dauerauftrag)" else "Automatische Buchung (${rec.interval.labelDe})",
                     paymentMethod = rec.paymentMethod,
-                    latitude = null,
-                    longitude = null,
+                    latitude = rec.latitude,
+                    longitude = rec.longitude,
                     locationName = rec.locationName ?: "Dauerauftrag",
                     feelingEmoji = null
                 )
@@ -190,53 +196,23 @@ class ExpenseRepository(context: Context) {
             _categories.value = dbHelper.getAllCategories()
             _trips.value = dbHelper.getAllTrips()
 
-            val existingRecs = dbHelper.getAllRecurringExpenses()
-            if (existingRecs.isEmpty()) {
-                insertInitialRecurringData()
+            val hasSeeded = prefs.getBoolean("has_seeded_initial_v5", false)
+            if (!hasSeeded) {
+                if (dbHelper.getAllExpenses().isEmpty()) {
+                    insertInitialDemoData()
+                }
+                if (dbHelper.getAllRecurringExpenses().isEmpty()) {
+                    insertInitialRecurringData()
+                }
+                prefs.edit().putBoolean("has_seeded_initial_v5", true).apply()
             }
-            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
 
-            val existing = dbHelper.getAllExpenses()
-            if (existing.isEmpty()) {
-                insertInitialDemoData()
-                prefs.edit().putBoolean("has_seeded_initial", true).apply()
-            }
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
 
             // Process any due recurring expenses automatically
             processRecurringExpenses()
 
-            val rawExpenses = dbHelper.getAllExpenses()
-
-            val sampleSpots = listOf(
-                Triple(41.9028, 12.4964, "Rom Zentrum"),
-                Triple(41.8887, 12.4705, "Trastevere, Rom"),
-                Triple(41.8902, 12.4922, "Kolosseum, Rom"),
-                Triple(43.7710, 11.2486, "Florenz Altstadt"),
-                Triple(43.7677, 11.2553, "Uffizien, Florenz"),
-                Triple(43.4678, 11.0435, "San Gimignano, Toskana"),
-                Triple(43.3188, 11.3307, "Siena, Toskana"),
-                Triple(45.4342, 12.3388, "Venedig"),
-                Triple(45.4642, 9.1900, "Mailand"),
-                Triple(48.1371, 11.5754, "München"),
-                Triple(41.3855, 2.1820, "Barcelona")
-            )
-
-            val resolved = rawExpenses.mapIndexed { idx, exp ->
-                if (exp.latitude == null || exp.longitude == null) {
-                    val spot = sampleSpots[idx % sampleSpots.size]
-                    val jitterLat = (Math.random() - 0.5) * 0.03
-                    val jitterLng = (Math.random() - 0.5) * 0.03
-                    val fixed = exp.copy(
-                        latitude = spot.first + jitterLat,
-                        longitude = spot.second + jitterLng,
-                        locationName = exp.locationName ?: spot.third
-                    )
-                    dbHelper.updateExpense(fixed)
-                    fixed
-                } else exp
-            }
-
-            _expenses.value = resolved
+            _expenses.value = dbHelper.getAllExpenses()
         }
     }
 
@@ -404,8 +380,37 @@ class ExpenseRepository(context: Context) {
     fun addRecurringExpense(rec: RecurringExpense) {
         scope.launch {
             dbHelper.insertRecurringExpense(rec)
+            // Immediately book current cycle so it appears across ALL tabs:
+            val now = System.currentTimeMillis()
+            val initialExp = Expense(
+                id = UUID.randomUUID().toString(),
+                title = rec.title,
+                amount = rec.amount,
+                currency = rec.currency,
+                categoryId = rec.categoryId,
+                tripId = null,
+                date = if (rec.startDate > 0L) rec.startDate else now,
+                notes = if (rec.notes.isNotBlank()) "${rec.notes} (Dauerauftrag)" else "Dauerauftrag (${rec.interval.labelDe})",
+                paymentMethod = rec.paymentMethod,
+                latitude = rec.latitude,
+                longitude = rec.longitude,
+                locationName = rec.locationName ?: "Dauerauftrag",
+                feelingEmoji = null
+            )
+            dbHelper.insertExpense(initialExp)
             processRecurringExpenses()
             _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+            _expenses.value = dbHelper.getAllExpenses()
+        }
+    }
+
+    fun addRecurringExpenseWithInitialBooking(rec: RecurringExpense, initialExpense: Expense) {
+        scope.launch {
+            dbHelper.insertRecurringExpense(rec)
+            dbHelper.insertExpense(initialExpense)
+            processRecurringExpenses()
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+            _expenses.value = dbHelper.getAllExpenses()
         }
     }
 
@@ -437,8 +442,8 @@ class ExpenseRepository(context: Context) {
                 date = now,
                 notes = if (rec.notes.isNotBlank()) "${rec.notes} (Manuell ausgelöst)" else "Dauerauftrag (${rec.interval.labelDe})",
                 paymentMethod = rec.paymentMethod,
-                latitude = null,
-                longitude = null,
+                latitude = rec.latitude,
+                longitude = rec.longitude,
                 locationName = rec.locationName ?: "Dauerauftrag",
                 feelingEmoji = null
             )
