@@ -26,45 +26,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.LockClock
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.WorkHistory
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -84,11 +69,12 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.pow
 
-data class WishItem(
-    val id: String,
+data class SparHackDetail(
+    val emoji: String,
     val title: String,
-    val price: Double,
-    val hoursLeft: Int
+    val subtitle: String,
+    val explanation: String,
+    val keyRule: String
 )
 
 @Composable
@@ -142,23 +128,8 @@ fun AiSavingsScreen(
     // Hourly Wage State for Life Energy Cost
     var hourlyWage by remember { mutableDoubleStateOf(20.0) }
 
-    // Dialog States for the 3 Interactive Hacks
-    var showHack1Dialog by remember { mutableStateOf(false) }
-    var showHack2Dialog by remember { mutableStateOf(false) }
-    var showHack3Dialog by remember { mutableStateOf(false) }
-
-    // 48h Wishlist State
-    val wishList = remember {
-        mutableStateListOf(
-            WishItem("1", "Kabellose Kopfhörer ANC", 89.0, 31),
-            WishItem("2", "Trend-Sneaker Limited", 119.0, 14)
-        )
-    }
-    var newWishTitle by remember { mutableStateOf("") }
-    var newWishPrice by remember { mutableStateOf("") }
-
-    // 30€ Cash Envelope State
-    var cashEnvelopeSpent by remember { mutableDoubleStateOf(11.50) }
+    // Selected Hack for Detail Dialog (Whole Info Only, No Sub-functions)
+    var selectedHackDetail by remember { mutableStateOf<SparHackDetail?>(null) }
 
     // Witty Quotes Carousel State
     val aiQuotes = remember {
@@ -173,58 +144,32 @@ fun AiSavingsScreen(
     }
     var currentQuoteIndex by remember { mutableIntStateOf(0) }
 
+    // Bei jedem Öffnen des Tabs Denkanstöße neu würfeln & Inflation aktualisieren
+    LaunchedEffect(Unit) {
+        currentQuoteIndex = aiQuotes.indices.random()
+        viewModel.refreshInflationRate(forceRefresh = true)
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // TOP HEADER
+        // TOP HEADER (Ohne AI-Core Zeichen)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Spar-KI & Sparfuchs",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Intelligente Frustkauf-Vermeidung & Vermögens-Effekt",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFEFF6FF)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = Color(0xFF2563EB),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "AICore",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF2563EB)
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = "Spar-KI & Sparfuchs",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Intelligente Frustkauf-Vermeidung & Vermögens-Effekt",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -367,7 +312,7 @@ fun AiSavingsScreen(
             }
         }
 
-        // RAFFINIERTES FEATURE 1: LEBENSZEIT- & ARBEITSSTUNDEN-RECHNER
+        // LEBENSZEIT- & ARBEITSSTUNDEN-RECHNER
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -382,48 +327,29 @@ fun AiSavingsScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.WorkHistory,
-                                contentDescription = null,
-                                tint = Color(0xFFD97706),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Lebenszeit- & Arbeitsrechner",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFFEF3C7)
-                        ) {
-                            Text(
-                                text = "Life Energy",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFB45309)
-                            )
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.WorkHistory,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Lebenszeit- & Arbeitsrechner",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Wie viele Stunden Lebenszeit kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:",
+                        text = "Wie viele Arbeitsstunden kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // Wage Chips
                     Row(
@@ -438,7 +364,7 @@ fun AiSavingsScreen(
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surface)
                                     .clickable { hourlyWage = wage }
-                                    .padding(vertical = 6.dp),
+                                    .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -499,7 +425,7 @@ fun AiSavingsScreen(
             }
         }
 
-        // RAFFINIERTES FEATURE 2: INTERAKTIVER WAS-WÄRE-WENN ZINSESZINS & TRAUM-SIMULATOR
+        // INTERAKTIVER WAS-WÄRE-WENN CALCULATOR (Saubere Überschrift & Inflation getrennt!)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -514,41 +440,38 @@ fun AiSavingsScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.TrendingUp,
-                                contentDescription = null,
-                                tint = Color(0xFF0284C7),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Was-Wäre-Wenn Zinseszins",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE0F2FE)
-                        ) {
-                            Text(
-                                text = "Weltbank ${String.format(Locale.US, "%.2f", worldBankInflationRate)}% Inf.",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0369A1)
-                            )
-                        }
+                    // Headline mit separater Zeile für Inflation (Keine Überdeckung mehr!)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Was-Wäre-Wenn Zinseszins",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFE0F2FE)
+                    ) {
+                        Text(
+                            text = "Weltbank-Inflation DEU: ${String.format(Locale.US, "%.2f", worldBankInflationRate)} % (Live aktualisiert)",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0369A1)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = "Wähle deinen monatlichen Sparbetrag aus Frustkauf-Vermeidung:",
                         style = MaterialTheme.typography.bodySmall,
@@ -671,7 +594,7 @@ fun AiSavingsScreen(
             }
         }
 
-        // UNTERHALTSAMER KI-SPRUCH DES TAGES
+        // UNTERHALTSAMER KI-SPRUCH DES TAGES (Neu gewürfelt bei Tab-Aufruf)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -742,7 +665,7 @@ fun AiSavingsScreen(
             }
         }
 
-        // 3 INTERAKTIVE & ANKLICKBARE SPAR-HACKS (Jetzt als schöne, geordnete Klick-Karten!)
+        // 2x2 MATRIX: SPAR-HACKS (Nur Info beim Anklicken, keine neue Funktion)
         item {
             Column {
                 Row(
@@ -751,52 +674,97 @@ fun AiSavingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "3 interaktive Spar-Hacks",
+                        text = "Spar-Hacks",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Tippen zum Öffnen",
+                        text = "Tippen für Info",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Hack 1: 48h-Pause (Anklickbar)
-                InteractiveHackRowCard(
-                    emoji = "⏱️",
-                    title = "48-Stunden Wunsch-Pause",
-                    badge = "${wishList.size} aktiv",
-                    desc = "Wunschkäufe 2 Tage pausieren. Hier tippen, um Spontankauf zu stoppen.",
-                    onClick = { showHack1Dialog = true }
-                )
+                // 2 x 2 Matrix Row 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SparHackGridButton(
+                        emoji = "⏱️",
+                        title = "48h-Pause",
+                        subtitle = "Spontankäufe 2 Tage warten",
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            selectedHackDetail = SparHackDetail(
+                                emoji = "⏱️",
+                                title = "Die 48-Stunden-Regel",
+                                subtitle = "Spontankäufe 2 Tage pausieren",
+                                explanation = "Verhaltensökonomen belegen: Über 70 % aller emotionalen Spontankäufe verlieren nach 48 Stunden ihren Reiz.\n\nBeim Gedanken an einen Kauf schüttet das Gehirn kurzfristig Dopamin aus. Nach zwei Tagen normalisiert sich der Spiegel wieder und du entscheidest mit klarem Kopf.",
+                                keyRule = "Regel: Alles ab 20 €, was nicht überlebenswichtig ist, 48 Stunden auf die Bedenkliste setzen. Erst kaufen, wenn der Wunsch nach 2 Tagen noch immer da ist."
+                            )
+                        }
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    SparHackGridButton(
+                        emoji = "🚶",
+                        title = "Frust-Lauf",
+                        subtitle = "Schritte statt Shopping",
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            selectedHackDetail = SparHackDetail(
+                                emoji = "🚶",
+                                title = "Der Frust-Spaziergang",
+                                subtitle = "Schritte sammeln statt Geld ausgeben",
+                                explanation = "Frust, Streit oder Erschöpfung erzeugen einen Drang nach schneller Belohnung – oft durch 'Frustkäufe' am Smartphone.\n\nEin 15-minütiger Spaziergang an der frischen Luft baut das Stresshormon Cortisol nachweislich um bis zu 40 % ab und setzt natürliche Endorphine frei – völlig kostenlos.",
+                                keyRule = "Regel: Bei Frust sofort das Smartphone weglegen, Schuhe anziehen und 15 Minuten stramm spazieren gehen, bevor eine Kaufentscheidung fällt."
+                            )
+                        }
+                    )
+                }
 
-                // Hack 2: Frust-Spaziergang (Anklickbar)
-                InteractiveHackRowCard(
-                    emoji = "🚶",
-                    title = "Frust-Notbremse (HALT-Prinzip)",
-                    badge = "Anti-Dopamin",
-                    desc = "Hungrig, wütend, einsam oder müde? 15-Minuten-Gehirn-Reset starten.",
-                    onClick = { showHack2Dialog = true }
-                )
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // 2 x 2 Matrix Row 2
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SparHackGridButton(
+                        emoji = "💵",
+                        title = "30€ Limit",
+                        subtitle = "Emotionale Käufe bar deckeln",
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            selectedHackDetail = SparHackDetail(
+                                emoji = "💵",
+                                title = "Das 30€ Bar-Budget",
+                                subtitle = "Spontanausgaben strikt bar begrenzen",
+                                explanation = "Kartenzahlung entkoppelt das Gehirn vom realen Schmerz des Geldverlusts ('Pain of Paying'). Völliger Verzicht führt jedoch zu Rückfällen.\n\nReserviere dir jeden Monat exakt 30 € in bar für Spontanausgaben und Belohnungen – ohne Karte.",
+                                keyRule = "Regel: Ist der 30€-Bargeldschein aufgebraucht, gibt es bis zum nächsten Monat absolut keine spontanen Belohnungskäufe mehr."
+                            )
+                        }
+                    )
 
-                // Hack 3: 30€ Belohnungs-Umschlag (Anklickbar)
-                val remainingCash = (30.0 - cashEnvelopeSpent).coerceAtLeast(0.0)
-                InteractiveHackRowCard(
-                    emoji = "💵",
-                    title = "30€ Bar-Umschlag",
-                    badge = "${currencyFormat.format(remainingCash)} € übrig",
-                    desc = "Monatsgrenze für Frust- & Belohnungskäufe. Tippen zum Verwalten.",
-                    onClick = { showHack3Dialog = true }
-                )
+                    SparHackGridButton(
+                        emoji = "🧘",
+                        title = "HALT-Check",
+                        subtitle = "Hungry, Angry, Lonely, Tired",
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            selectedHackDetail = SparHackDetail(
+                                emoji = "🧘",
+                                title = "Der HALT-Check",
+                                subtitle = "Hungry, Angry, Lonely, Tired",
+                                explanation = "Die HALT-Methode enttarnt die wahren Ursachen spontanen Kaufdrangs:\n\n• H (Hungry): Niedriger Blutzucker schwächt die Willenskraft.\n• A (Angry): Frust und Ärger suchen ein Ventil im Konsum.\n• L (Lonely / Bored): Einsamkeit und Langeweile füllt man mit Paketen.\n• T (Tired): Nach 20 Uhr ist die Selbstbeherrschung erschöpft.",
+                                keyRule = "Regel: Frage dich vor dem Klick: Bin ich Hungrig, Wütend, Einsam oder Müde? Behebe das echte Bedürfnis statt Geld auszugeben."
+                            )
+                        }
+                    )
+                }
             }
         }
 
@@ -898,275 +866,62 @@ fun AiSavingsScreen(
         }
     }
 
-    // DIALOG 1: 48h WUNSCHKAUF-PAUSE
-    if (showHack1Dialog) {
+    // DETAIL-DIALOG FÜR SPAR-HACKS (Nur die ganze Info, keine neuen Funktionen)
+    selectedHackDetail?.let { detail ->
         AlertDialog(
-            onDismissRequest = { showHack1Dialog = false },
+            onDismissRequest = { selectedHackDetail = null },
+            icon = {
+                Text(detail.emoji, fontSize = 28.sp)
+            },
             title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("⏱️", fontSize = 22.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("48h-Wunschkauf-Pause")
-                }
+                Text(
+                    text = detail.title,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Studien zeigen: 70 % aller Spontankäufe verlieren nach 48 Stunden ihren Reiz. Trage hier einen Wunsch ein, den du gerade kaufen wolltest:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        text = detail.subtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    OutlinedTextField(
-                        value = newWishTitle,
-                        onValueChange = { newWishTitle = it },
-                        label = { Text("Was möchtest du kaufen?") },
-                        placeholder = { Text("z.B. Neue Kopfhörer") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = newWishPrice,
-                            onValueChange = { newWishPrice = it },
-                            label = { Text("Preis in €") },
-                            placeholder = { Text("49.99") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-
-                        Button(
-                            onClick = {
-                                val pr = newWishPrice.replace(",", ".").toDoubleOrNull() ?: 0.0
-                                if (newWishTitle.isNotBlank() && pr > 0) {
-                                    wishList.add(0, WishItem(System.currentTimeMillis().toString(), newWishTitle.trim(), pr, 48))
-                                    newWishTitle = ""
-                                    newWishPrice = ""
-                                }
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Pausieren")
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
                     Text(
-                        text = "Laufende Bedenkzeiten (${wishList.size}):",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        text = detail.explanation,
+                        style = MaterialTheme.typography.bodyMedium,
+                        lineHeight = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    wishList.forEach { item ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                    Text("${currencyFormat.format(item.price)} € • Noch ${item.hoursLeft}h Bedenkzeit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                }
-                                IconButton(
-                                    onClick = { wishList.remove(item) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = "Gespart!", tint = Color(0xFF16A34A), modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showHack1Dialog = false }) {
-                    Text("Fertig")
-                }
-            }
-        )
-    }
-
-    // DIALOG 2: FRUST-NOTBREMSE & HALT-CHECK
-    if (showHack2Dialog) {
-        AlertDialog(
-            onDismissRequest = { showHack2Dialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🚶", fontSize = 22.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Frust-Notbremse (HALT)")
-                }
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Bevor du Geld ausgibst, prüfe das psychologische HALT-Prinzip. Warum willst du gerade kaufen?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    HaltQuestionItem("🍔", "Hungry (Hungrig)?", "Ein kleiner Snack stoppt oft den Kaufreiz.")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    HaltQuestionItem("😡", "Angry (Wütend)?", "Frust über die Arbeit? 15 min Spaziergang löst mehr.")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    HaltQuestionItem("🥱", "Lonely / Bored (Langeweile)?", "Shopping als Zeitvertreib. Ruf stattdessen jemanden an.")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    HaltQuestionItem("😴", "Tired (Müde)?", "Nach 21 Uhr ist deine Willenskraft erschöpft. Erst schlafen!")
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = Color(0xFFF0FDF4),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        Text(
+                            text = detail.keyRule,
                             modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.DirectionsWalk, contentDescription = null, tint = Color(0xFF15803D))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Tipp: Geh 15 Minuten vor die Tür. 95 % des Kaufdrangs verfliegen an der frischen Luft.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF15803D)
-                            )
-                        }
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF15803D),
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = { showHack2Dialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
+                    onClick = { selectedHackDetail = null },
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Frust abgewendet!")
-                }
-            }
-        )
-    }
-
-    // DIALOG 3: 30€ BAR-BELOHNUNGS-UMSCHLAG
-    if (showHack3Dialog) {
-        val budget = 30.0
-        val remaining = (budget - cashEnvelopeSpent).coerceAtLeast(0.0)
-        val progress = (cashEnvelopeSpent / budget).toFloat().coerceIn(0f, 1f)
-
-        AlertDialog(
-            onDismissRequest = { showHack3Dialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("💵", fontSize = 22.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("30€ Bar-Belohnungs-Umschlag")
-                }
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Völliger Verzicht führt zu Rückfällen. Erlaube dir jeden Monat genau 30 € in bar für emotionale Spontankäufe – strikt ohne Karte!",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Monats-Budget:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                Text("${currencyFormat.format(remaining)} € übrig", fontWeight = FontWeight.Bold, color = if (remaining > 5) Color(0xFF16A34A) else Color(0xFFDC2626))
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = if (progress < 0.8f) Color(0xFF16A34A) else Color(0xFFDC2626),
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Bisher verbraucht: ${currencyFormat.format(cashEnvelopeSpent)} € von 30,00 €",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text("Schnell-Abzug für Bar-Belohnung:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { cashEnvelopeSpent = (cashEnvelopeSpent + 3.50).coerceAtMost(30.0) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                        ) {
-                            Text("☕ Kaffee (3,50 €)", fontSize = 11.sp)
-                        }
-                        Button(
-                            onClick = { cashEnvelopeSpent = (cashEnvelopeSpent + 5.00).coerceAtMost(30.0) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                        ) {
-                            Text("🍫 Snack (5,00 €)", fontSize = 11.sp)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showHack3Dialog = false }) {
-                    Text("Fertig")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { cashEnvelopeSpent = 0.0 }) {
-                    Text("Budget zurücksetzen")
+                    Text("Verstanden")
                 }
             }
         )
@@ -1174,94 +929,57 @@ fun AiSavingsScreen(
 }
 
 @Composable
-private fun InteractiveHackRowCard(
+private fun SparHackGridButton(
     emoji: String,
     title: String,
-    badge: String,
-    desc: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-        ),
-        elevation = CardDefaults.cardElevation(1.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        tonalElevation = 1.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(12.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.size(44.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(text = emoji, fontSize = 22.sp)
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = badge,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = desc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    lineHeight = 16.sp
+                Text(text = emoji, fontSize = 22.sp)
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Öffnen",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
+            Spacer(modifier = Modifier.height(8.dp))
 
-@Composable
-private fun HaltQuestionItem(emoji: String, question: String, tip: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(emoji, fontSize = 16.sp)
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(question, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-            Text(tip, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = MaterialTheme.colorScheme.outline,
+                lineHeight = 13.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

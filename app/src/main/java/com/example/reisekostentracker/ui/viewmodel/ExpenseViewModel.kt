@@ -96,15 +96,19 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         if (_hasLocationConsent.value) {
             fetchCurrentLocation()
         }
-        viewModelScope.launch {
-            val rate = worldBankService.getGermanyInflationRate()
-            _worldBankInflationRate.value = rate
-            refreshAiInsights(expenses.value, rate)
-        }
+        refreshInflationRate(forceRefresh = true)
         viewModelScope.launch {
             expenses.collect { list ->
                 refreshAiInsights(list, _worldBankInflationRate.value)
             }
+        }
+    }
+
+    fun refreshInflationRate(forceRefresh: Boolean = true) {
+        viewModelScope.launch {
+            val rate = worldBankService.getGermanyInflationRate(forceRefresh)
+            _worldBankInflationRate.value = rate
+            refreshAiInsights(expenses.value, rate)
         }
     }
 

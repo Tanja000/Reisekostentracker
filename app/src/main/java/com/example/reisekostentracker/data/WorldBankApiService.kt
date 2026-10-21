@@ -38,8 +38,10 @@ class WorldBankApiService {
      * Ruft die offizielle Inflationsrate für Deutschland von der Weltbank API ab.
      * Nutzt Dispatchers.IO und puffert das Ergebnis.
      */
-    suspend fun getGermanyInflationRate(): Double = withContext(Dispatchers.IO) {
-        cachedInflationRate?.let { return@withContext it }
+    suspend fun getGermanyInflationRate(forceRefresh: Boolean = false): Double = withContext(Dispatchers.IO) {
+        if (!forceRefresh) {
+            cachedInflationRate?.let { return@withContext it }
+        }
 
         try {
             val url = URL(WORLDBANK_GERMANY_INFLATION_URL)
