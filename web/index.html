@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrackMyCent - Device Studio (iPhone & Android)</title>
+  <title>SaveIQ - Smart Expense & Savings AI Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -407,11 +407,19 @@
       border: none;
       color: var(--outline);
       cursor: pointer;
-      padding: 6px 8px;
+      padding: 6px 4px;
       border-radius: 12px;
       flex: 1;
+      min-width: 0;
     }
-    .nav-item span:last-child { font-size: 10px; font-weight: 700; }
+    .nav-item span:last-child {
+      font-size: 9.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
     .nav-item.active { color: var(--primary); }
 
     /* Home Indicator */
@@ -748,9 +756,9 @@
   <header class="studio-bar">
     <div class="studio-left">
       <div class="studio-logo">
-        <span>🪙</span>
-        <b>TrackMyCent</b>
-        <span class="studio-badge">Studio</span>
+        <span style="font-size:18px;">✨</span>
+        <b>SaveIQ</b>
+        <span class="studio-badge">AI Studio</span>
       </div>
 
       <!-- Device Switcher: iPhone vs Pixel Android vs Responsive -->
@@ -802,9 +810,9 @@
         <!-- App Header with Language Flags & Dark Mode -->
         <div class="app-header">
           <div class="app-title">
-            <span>🪙</span>
-            <span id="headerAppTitle">TrackMyCent</span>
-            <span class="badge">PRO</span>
+            <span style="font-size:18px;">✨</span>
+            <span id="headerAppTitle">SaveIQ</span>
+            <span class="badge">AI</span>
           </div>
           <div class="header-actions">
             <!-- Language Flag Switcher: DE & US -->
@@ -1049,7 +1057,7 @@
     // --- I18N DICTIONARY ---
     const I18N = {
       de: {
-        appTitle: "TrackMyCent",
+        appTitle: "SaveIQ",
         expensesTab: "Ausgaben",
         statsTab: "Statistik",
         savingsTab: "Spar-KI",
@@ -1108,7 +1116,7 @@
         quickMobility: "Mobilit\u00E4t / Transit"
       },
       en: {
-        appTitle: "TrackMyCent",
+        appTitle: "SaveIQ",
         expensesTab: "Expenses",
         statsTab: "Statistics",
         savingsTab: "Savings AI",
@@ -1868,129 +1876,175 @@
     }
 
     // --- TAB 2: SPAR-KI (FRUSTKAUF & WELTBANK SPARDETAILS) ---
+    let selectedMonthlySavings = 50;
+    let aiQuoteIdx = 0;
+    const aiQuotesList = [
+      "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
+      "„Online-Warenkörbe um 23:00 Uhr sind selten eine rationale Lebensentscheidung.“",
+      "„Jeder nicht getätigte Frustkauf ist ein voll bezahlter Urlaubstag in deiner Zukunft.“",
+      "„Frust vergeht nach zwei Stunden – die Ratenzahlung bleibt den ganzen Monat.“",
+      "„Dein Zukunfts-Ich dankt dir jedes Mal, wenn du den Warenkorb einfach schließt.“",
+      "„Geld ausgeben für Dinge, die man nicht braucht, um Leute zu beeindrucken, die man nicht mag.“"
+    ];
+
+    function setSavingsSimulator(amt) {
+      selectedMonthlySavings = amt;
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
+    function rollAiQuote() {
+      aiQuoteIdx = (aiQuoteIdx + 1) % aiQuotesList.length;
+      renderSavingsAiScreen(document.getElementById('mainContent'));
+    }
+
     function renderSavingsAiScreen(container) {
       const frustList = expenses.filter(e => e.feelingEmoji && ['⚡', '🥱', '💸', '🤦', '😡'].includes(e.feelingEmoji));
       const totalFrust = frustList.reduce((s, e) => s + Number(e.amount), 0);
-      const annualSavings = totalFrust * 12;
       const totalExp = expenses.reduce((s, e) => s + Number(e.amount), 0);
-      const frustPct = totalExp > 0 ? (totalFrust / totalExp) * 100 : 0;
+      const consciousPct = totalExp > 0 ? Math.max(0, Math.min(100, Math.round((1 - (totalFrust / totalExp)) * 100))) : 100;
+      const compound30 = Math.round(totalFrust * Math.pow(1.07, 30));
 
-      const aiQuotes = [
-        "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
-        "„Hättest du dieses Shopping-Wochenende in einen weltweiten Sparplan investiert, könntest du dir in 15 Jahren ein Sabbatical finanzieren.“",
-        "„Ein einziger Frustkauf von 50 € wächst bei 7 % Marktrendite auf 380 € an – der teuerste Moment deines Monats.“",
-        "„10 Minuten Impulskauf bedeuten oft 3 Tage Mehrarbeit für die Altersvorsorge.“"
-      ];
-      const selectedQuote = aiQuotes[Math.floor(Math.random() * aiQuotes.length)];
+      const r = 0.07 / 12;
+      const f10 = Math.round(selectedMonthlySavings * ((Math.pow(1 + r, 120) - 1) / r));
+      const f25 = Math.round(selectedMonthlySavings * ((Math.pow(1 + r, 300) - 1) / r));
+
+      let milestoneReward = "🏖️ 1 ganzes Jahr Auszeit & Reisen am Meer";
+      if (selectedMonthlySavings === 25) milestoneReward = "✈️ Jährlicher Luxus-Städtetrip voll bezahlt";
+      else if (selectedMonthlySavings === 100) milestoneReward = "⚡ Neuer Traumwagen bar & schuldenfrei";
+      else if (selectedMonthlySavings === 200) milestoneReward = "🏡 Das Eigenkapital für deine Traumwohnung";
+
+      let statusTitle = "Meister-Sparfuchs";
+      if (consciousPct < 70) statusTitle = "Impulsiver Entdecker";
+      else if (consciousPct < 85) statusTitle = "Bewusster Genießer";
 
       let html = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <div>
             <div style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:6px;">
               <span>Spar-KI & Sparfuchs</span>
               <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px;">AICore</span>
             </div>
-            <div style="font-size:12px; color:var(--outline);">Android AICore on-device Intelligenz & Weltbank Zinseszins Rechner</div>
+            <div style="font-size:12px; color:var(--outline);">Intelligente Frustkauf-Vermeidung & Zinseszins-Effekt</div>
           </div>
         </div>
 
-        <!-- KPI SUMMARY CARDS -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:12px 0;">
-          <div class="card" style="margin-bottom:0; padding:12px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);">
-            <div style="font-size:10.5px; font-weight:700; color:#ef4444; text-transform:uppercase;">Frust- & Impulskosten</div>
-            <div style="font-size:20px; font-weight:900; color:#ef4444; margin-top:2px;">${formatCurrency(totalFrust)}</div>
-            <div style="font-size:10px; color:var(--outline); margin-top:2px;">${frustList.length} unüberlegte Käufe (${frustPct.toFixed(1)}%)</div>
-          </div>
-          <div class="card" style="margin-bottom:0; padding:12px 14px; background:rgba(22,163,74,0.08); border:1px solid rgba(22,163,74,0.25);">
-            <div style="font-size:10.5px; font-weight:700; color:#16a34a; text-transform:uppercase;">Jahres-Sparpotenzial</div>
-            <div style="font-size:20px; font-weight:900; color:#16a34a; margin-top:2px;">≈ ${formatCurrency(annualSavings)}</div>
-            <div style="font-size:10px; color:var(--outline); margin-top:2px;">Bei Vermeidung von Frustkäufen</div>
-          </div>
-        </div>
-
-        <!-- ANDROID AICORE FRUSTKAUF PREVENTION CARD -->
-        <div class="card" style="margin-bottom:12px; border:1px solid rgba(37,99,235,0.25);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <!-- GAMIFIED SPAR-SCORE CARD -->
+        <div class="card" style="margin-bottom:12px; background:var(--primary-container); border:none; padding:14px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">psychology</span>
+              <span style="font-size:24px;">🦊</span>
               <div>
-                <div style="font-size:13.5px; font-weight:800;">Android AICore Frustkauf-Analyse</div>
-                <div style="font-size:10.5px; color:var(--outline);">On-Device LLM & Psychologie</div>
+                <div style="font-size:10.5px; font-weight:700; color:var(--on-primary-container); opacity:0.8; text-transform:uppercase;">Spar-Status</div>
+                <div style="font-size:15px; font-weight:900; color:var(--on-primary-container);">${statusTitle}</div>
               </div>
             </div>
-            <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
-              ⚡ AICore on-device
-            </span>
+            <div style="background:var(--card-bg); padding:4px 10px; border-radius:12px; font-size:12px; font-weight:900; color:${consciousPct >= 80 ? '#16a34a' : '#d97706'};">
+              ${consciousPct} % Bewusst
+            </div>
           </div>
 
-          ${frustList.length > 0 ? `
-            <div style="font-size:11.5px; font-weight:700; color:var(--on-surface); margin-bottom:6px;">
-              💡 Personalisierte AICore Strategien:
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <div style="background:var(--card-bg); border-radius:12px; padding:10px 12px;">
+              <div style="font-size:10px; color:var(--outline); font-weight:700;">Frust-Kosten</div>
+              <div style="font-size:16px; font-weight:900; color:#dc2626; margin-top:2px;">${formatCurrency(totalFrust)}</div>
+              <div style="font-size:9.5px; color:var(--outline);">${frustList.length} Fehlkäufe</div>
             </div>
-            <div style="font-size:11px; color:var(--on-surface-variant); line-height:1.5; background:var(--surface-variant); padding:10px 12px; border-radius:12px; margin-bottom:10px;">
-              • <b>48-Stunden-Wartezeit:</b> Spontankäufe ab 20 € zunächst zwei Tage auf die Wunschliste setzen.<br>
-              • <b>Ersatz-Ritual bei Frust & Langeweile:</b> Spaziergang an der frischen Luft oder Tee statt Onlineshop.<br>
-              • <b>Festes Belohnungs-Budget:</b> Maximal 30 € pro Monat bar für emotionale Spontankäufe reservieren.
+            <div style="background:var(--card-bg); border-radius:12px; padding:10px 12px;">
+              <div style="font-size:10px; color:var(--outline); font-weight:700;">30-Jahre-Effekt</div>
+              <div style="font-size:16px; font-weight:900; color:#16a34a; margin-top:2px;">≈ ${formatCurrency(compound30)}</div>
+              <div style="font-size:9.5px; color:var(--outline);">Bei 7 % Weltbank-ETF</div>
             </div>
-          ` : `
-            <div style="background:rgba(22,163,74,0.1); border-radius:10px; padding:10px 12px; font-size:11.5px; color:#16a34a; font-weight:600; margin-bottom:8px;">
-              ✓ Bisher keine Frust- oder Impulskäufe erfasst! Deine Konsumentscheidungen sind bewusst und vorbildlich.
-            </div>
-          `}
+          </div>
         </div>
 
-        <!-- WELTBANK & ZINSESZINS OPPORTUNITÄTSKOSTEN CARD -->
-        <div class="card" style="margin-bottom:12px; border:1px solid rgba(2,132,199,0.25);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:#0284c7; font-size:22px;">trending_up</span>
-              <div>
-                <div style="font-size:13.5px; font-weight:800;">Zinseszins & Inflation</div>
-                <div style="font-size:10.5px; color:var(--outline);">Weltbank API (DEU FP.CPI.TOTL.ZG)</div>
-              </div>
+        <!-- INTERACTIVE WAS-WÄRE-WENN CALCULATOR -->
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="color:#0284c7; font-size:20px;">trending_up</span>
+              <span style="font-size:13.5px; font-weight:800;">Was-Wäre-Wenn Zinseszins</span>
             </div>
-            <span style="background:rgba(2,132,199,0.12); color:#0284c7; font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
-              DEU 2,25 % Inf.
+            <span style="background:rgba(2,132,199,0.1); color:#0284c7; font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:6px;">
+              Weltbank 2,25 % Inf.
             </span>
           </div>
-
-          <!-- Dynamic Quote -->
-          <div style="background:var(--primary-container); border-radius:12px; padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;">
-            <span class="material-symbols-rounded" style="color:var(--primary); font-size:20px; flex-shrink:0;">lightbulb</span>
-            <div style="font-size:12px; font-weight:700; font-style:italic; color:var(--on-primary-container); line-height:1.4;">
-              ${selectedQuote}
-            </div>
+          <div style="font-size:11px; color:var(--outline); margin-bottom:10px;">
+            Wähle deinen monatlichen Sparbetrag aus vermiedenen Spontankäufen:
           </div>
 
-          <div style="background:var(--surface-variant); border-radius:12px; padding:12px; font-size:11.5px; line-height:1.45;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span>50,00 € Spontankauf angelegt (7 % p.a.):</span>
-              <b style="color:#16a34a;">in 30 Jahren ≈ 380,61 €</b>
+          <!-- Interactive Chips -->
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:12px;">
+            ${[25, 50, 100, 200].map(amt => `
+              <button onclick="setSavingsSimulator(${amt})" style="border:none; cursor:pointer; padding:8px 0; border-radius:10px; font-weight:800; font-size:12px; transition:all 0.15s; ${selectedMonthlySavings === amt ? 'background:#0284c7; color:#fff;' : 'background:var(--surface-variant); color:var(--on-surface);'}">
+                ${amt} €
+              </button>
+            `).join('')}
+          </div>
+
+          <div style="background:var(--surface-variant); border-radius:12px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <div>
+                <div style="font-size:10px; color:var(--outline); font-weight:700;">In 10 Jahren:</div>
+                <div style="font-size:15px; font-weight:800; color:var(--primary);">${formatCurrency(f10)}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px; color:var(--outline); font-weight:700;">In 25 Jahren:</div>
+                <div style="font-size:16px; font-weight:900; color:#16a34a;">≈ ${formatCurrency(f25)}</div>
+              </div>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span>Monatlich 50 € gespart & investiert:</span>
-              <b style="color:#16a34a;">in 30 Jahren ≈ 60.998 €</b>
-            </div>
-            <div style="color:var(--outline); font-size:10px; margin-top:4px;">
-              Inflationsbereinigte Kaufkraft nach 30 Jahren: ≈ 31.280 € (bei 2,25 % Weltbank-Inflation).
+            <div style="background:rgba(22,163,74,0.1); border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700; color:#15803d;">
+              ${milestoneReward}
             </div>
           </div>
-          <div style="font-size:9.5px; color:var(--outline); margin-top:8px;">
-            💡 Datenbasis: Weltbank Open Data API • 7 % p.a. historische ETF-Rendite (MSCI World).
+        </div>
+
+        <!-- WITTY AI QUOTE OF THE DAY -->
+        <div class="card" style="margin-bottom:12px; border:1px solid rgba(234,179,8,0.3); background:rgba(254,240,138,0.08);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="color:#eab308; font-size:18px;">lightbulb</span>
+              <span style="font-size:12px; font-weight:800;">KI-Denkanstoß</span>
+            </div>
+            <button class="icon-btn" style="width:24px; height:24px; color:var(--outline);" onclick="rollAiQuote()" title="Nächster Spruch">
+              <span class="material-symbols-rounded" style="font-size:16px;">casino</span>
+            </button>
+          </div>
+          <div style="font-size:12px; font-style:italic; font-weight:600; color:var(--on-surface); line-height:1.45;">
+            ${aiQuotesList[aiQuoteIdx]}
+          </div>
+        </div>
+
+        <!-- 3 SNACKABLE AI QUICK-HACKS -->
+        <div style="font-size:12.5px; font-weight:800; color:var(--outline); margin-bottom:8px;">3 schnelle Spar-Hacks</div>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:14px;">
+          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
+            <div style="font-size:20px; margin-bottom:3px;">⏱️</div>
+            <div style="font-size:11px; font-weight:800;">48h-Pause</div>
+            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">2 Tage warten vor dem Klick</div>
+          </div>
+          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
+            <div style="font-size:20px; margin-bottom:3px;">🚶</div>
+            <div style="font-size:11px; font-weight:800;">Schritte</div>
+            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">Frust weglaufen statt kaufen</div>
+          </div>
+          <div class="card" style="margin-bottom:0; padding:10px; text-align:center;">
+            <div style="font-size:20px; margin-bottom:3px;">💵</div>
+            <div style="font-size:11px; font-weight:800;">30€ Limit</div>
+            <div style="font-size:9.5px; color:var(--outline); margin-top:2px;">Impulskäufe strikt deckeln</div>
           </div>
         </div>
 
         <!-- LIST OF RECORDED FRUSTKÄUFE -->
-        <div style="font-size:13px; font-weight:800; color:var(--outline); margin:14px 0 8px;">
-          Erfasste Frust- & Impulskäufe (${frustList.length})
+        <div style="font-size:12.5px; font-weight:800; color:var(--outline); margin-bottom:8px;">
+          Erfasste Fehl- & Frustkäufe (${frustList.length})
         </div>
       `;
 
       if (frustList.length === 0) {
         html += `
-          <div class="card" style="text-align:center; padding:24px 16px; color:var(--outline);">
-            <span class="material-symbols-rounded" style="font-size:36px; color:#16a34a; margin-bottom:6px;">sentiment_satisfied</span>
-            <div style="font-size:13px; font-weight:700; color:var(--on-surface);">Keine Frustkäufe vorhanden</div>
+          <div class="card" style="text-align:center; padding:20px 14px; color:var(--outline);">
+            <span class="material-symbols-rounded" style="font-size:32px; color:#16a34a; margin-bottom:4px;">sentiment_satisfied</span>
+            <div style="font-size:12.5px; font-weight:800; color:var(--on-surface);">Keine Frustkäufe vorhanden</div>
             <div style="font-size:11px; margin-top:2px;">Wähle beim Eintragen von Ausgaben ein Emoji, um deine Emotionen festzuhalten.</div>
           </div>
         `;
@@ -1998,21 +2052,21 @@
         html += frustList.map(exp => {
           const cat = getCategory(exp.categoryId);
           return `
-            <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;">
-              <div style="font-size:24px; width:40px; height:40px; border-radius:12px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <div class="card" style="display:flex; align-items:center; gap:12px; padding:10px 12px; margin-bottom:8px;">
+              <div style="font-size:22px; width:38px; height:38px; border-radius:12px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 ${exp.feelingEmoji || '🤦'}
               </div>
               <div style="flex:1; min-width:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:13.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
+                  <span style="font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
                   <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:14px; font-weight:900; color:#ef4444; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
-                    <button class="icon-btn" style="width:24px; height:24px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
-                      <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
+                    <span style="font-size:13.5px; font-weight:900; color:#dc2626; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                    <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
+                      <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
                     </button>
                   </div>
                 </div>
-                <div style="font-size:11px; color:var(--outline); margin-top:2px;">
+                <div style="font-size:11px; color:var(--outline); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                   <span style="color:${cat.color}; font-weight:700;">${cat.name}</span> \u2022 ${formatDate(exp.date)} ${exp.location ? '\u2022 📍 ' + exp.location : ''}
                 </div>
               </div>

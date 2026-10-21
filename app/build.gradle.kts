@@ -97,20 +97,22 @@ abstract class CopyApkTask : DefaultTask() {
     @TaskAction
     fun copyApk() {
         val src = debugDir.file("app-debug.apk").get().asFile
-        val target = debugDir.file("TrackMyCent.apk").get().asFile
+        val targetSaveIQ = debugDir.file("SaveIQ.apk").get().asFile
+        val targetLegacy = debugDir.file("TrackMyCent.apk").get().asFile
         if (src.exists()) {
-            src.copyTo(target, overwrite = true)
-            println("Created debug APK: ${target.absolutePath}")
+            src.copyTo(targetSaveIQ, overwrite = true)
+            src.copyTo(targetLegacy, overwrite = true)
+            println("Created debug APK: ${targetSaveIQ.absolutePath}")
         }
     }
 }
 
-tasks.register<CopyApkTask>("copyTrackMyCentApk") {
+tasks.register<CopyApkTask>("copySaveIqApk") {
     debugDir.set(layout.buildDirectory.dir("outputs/apk/debug"))
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
-    finalizedBy("copyTrackMyCentApk")
+    finalizedBy("copySaveIqApk")
 }
 
 

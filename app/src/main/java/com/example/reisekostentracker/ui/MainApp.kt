@@ -6,9 +6,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Analytics
@@ -63,7 +69,7 @@ import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
 
 sealed class NavItem(val title: String, val icon: ImageVector) {
     object Expenses : NavItem("Ausgaben", Icons.Default.Payments)
-    object Statistics : NavItem("Statistiken", Icons.Default.Analytics)
+    object Statistics : NavItem("Statistik", Icons.Default.Analytics)
     object SavingsAi : NavItem("Spar-KI", Icons.Default.AutoAwesome)
     object Map : NavItem("Karte", Icons.Default.Map)
     object Categories : NavItem("Kategorien", Icons.Default.Category)
@@ -134,11 +140,28 @@ fun MainApp(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "TrackMyCent",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "SaveIQ",
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 },
                 actions = {
                     // GPS Location Refresh Button
@@ -200,8 +223,17 @@ fun MainApp(
                     NavigationBarItem(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, maxLines = 1) }
+                        icon = { Icon(item.icon, contentDescription = item.title, modifier = Modifier.size(22.dp)) },
+                        label = {
+                            Text(
+                                text = item.title,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                            )
+                        },
+                        alwaysShowLabel = true
                     )
                 }
             }

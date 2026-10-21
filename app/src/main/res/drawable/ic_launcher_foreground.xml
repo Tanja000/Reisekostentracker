@@ -8,59 +8,65 @@
 
     <!-- Subtle drop shadow under coin -->
     <path
-        android:fillColor="#35000000"
-        android:pathData="M54,57m-25,0a25,25 0 1,0 50,0a25,25 0 1,0 -50,0" />
+        android:fillColor="#40000000"
+        android:pathData="M54,58m-26,0a26,26 0 1,0 52,0a26,26 0 1,0 -52,0" />
 
-    <!-- Outer Gold Coin -->
-    <path android:pathData="M54,54m-25,0a25,25 0 1,0 50,0a25,25 0 1,0 -50,0">
+    <!-- Outer Gold Coin with Rich Metallic Gradient -->
+    <path android:pathData="M54,54m-26,0a26,26 0 1,0 52,0a26,26 0 1,0 -52,0">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="32"
-                android:startY="32"
-                android:endX="76"
-                android:endY="76"
+                android:startX="30"
+                android:startY="30"
+                android:endX="78"
+                android:endY="78"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#FDE047" />
-                <item android:offset="0.4" android:color="#F59E0B" />
-                <item android:offset="1.0" android:color="#D97706" />
+                <item android:offset="0.0" android:color="#FEF08A" />
+                <item android:offset="0.35" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#B45309" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Coin Inner Rim Stroke -->
+    <!-- Inner Coin Groove Stroke -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="1.2"
-        android:strokeAlpha="0.45"
-        android:pathData="M54,54m-21,0a21,21 0 1,0 42,0a21,21 0 1,0 -42,0" />
+        android:strokeAlpha="0.5"
+        android:pathData="M54,54m-22,0a22,22 0 1,0 44,0a22,22 0 1,0 -44,0" />
 
-    <!-- Cent Sign Vertical Slash (¢) -->
+    <!-- Stylized Modern 'S' for Save (Pure White with Crisp Curves) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round"
-        android:pathData="M54,38 L54,70" />
-
-    <!-- Cent Sign 'C' Arc (¢) -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="3.8"
-        android:strokeLineCap="round"
-        android:pathData="M61.5,46.5 C59,44 56.5,43 53.5,43 C47,43 42.5,48 42.5,54 C42.5,60 47,65 53.5,65 C56.5,65 59,64 61.5,61.5" />
-
-    <!-- Upward Trend Badge (Fintech Tracker Accent) -->
-    <path
-        android:fillColor="#10B981"
-        android:pathData="M69,39m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.4"
+        android:strokeWidth="4.2"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M66,41 L69,37 L72,39.5" />
+        android:pathData="M61,44 C58,41 51,41 48,44 C45,47 46,51 52,53 C59,55 62,58 60,63 C58,67 50,68 46,64" />
+
+    <!-- AI Sparkle Vertical Ray (Center of Coin) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 L55.5,39.5 L61,41 L55.5,42.5 L54,48 L52.5,42.5 L47,41 L52.5,39.5 Z" />
+
+    <!-- Top-Right Glowing AI Intelligence Star (Cyan-Electric Sparkle) -->
+    <path android:pathData="M73,35m-7,0a7,7 0 1,0 14,0a7,7 0 1,0 -14,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="66"
+                android:startY="28"
+                android:endX="80"
+                android:endY="42"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#6366F1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 4-Point Sparkle inside AI Star Badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M73,30 L74.2,33.8 L78,35 L74.2,36.2 L73,40 L71.8,36.2 L68,35 L71.8,33.8 Z" />
 
 </vector>
