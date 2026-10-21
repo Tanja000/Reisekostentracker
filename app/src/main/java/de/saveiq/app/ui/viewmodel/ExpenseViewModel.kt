@@ -70,11 +70,13 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         val next = _currentLanguage.value.toggle()
         _currentLanguage.value = next
         prefs.edit().putString("app_language", next.code).apply()
+        refreshInflationRate(forceRefresh = true)
     }
 
     fun setLanguage(language: AppLanguage) {
         _currentLanguage.value = language
         prefs.edit().putString("app_language", language.code).apply()
+        refreshInflationRate(forceRefresh = true)
     }
 
     // World Bank API & Android AICore Client Services
@@ -130,7 +132,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshInflationRate(forceRefresh: Boolean = true) {
         viewModelScope.launch {
-            val rate = worldBankService.getGermanyInflationRate(forceRefresh)
+            val isEn = _currentLanguage.value.isEnglish
+            val countryCode = if (isEn) "GBR" else "DEU"
+            val rate = worldBankService.getInflationRate(countryCode, forceRefresh)
             _worldBankInflationRate.value = rate
             refreshAiInsights(expenses.value, rate)
         }

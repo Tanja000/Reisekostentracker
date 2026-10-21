@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -368,69 +369,88 @@ fun AiSavingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Wage Chips
+                    // Wage Chips - schön abgerundet und gut lesbar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(15.0, 20.0, 25.0, 35.0).forEach { wage ->
                             val isSelected = hourlyWage == wage
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
                                     .clickable { hourlyWage = wage }
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "${wage.toInt()} €/h",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     val workHoursLost = if (hourlyWage > 0) totalFrustrationAmount / hourlyWage else 0.0
                     val workDaysLost = workHoursLost / 8.0
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    // Großzügiges, wunderschön abgerundetes weißes Ergebnisfenster mit viel Platz
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 2.dp,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column {
-                            Text(
-                                text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            Text(
-                                text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFDC2626)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFFEE2E2)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFDC2626)
-                            )
+                            Column {
+                                Text(
+                                    text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFDC2626)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFFFEE2E2)
+                            ) {
+                                Text(
+                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFDC2626)
+                                )
+                            }
                         }
                     }
                 }
@@ -493,29 +513,34 @@ fun AiSavingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Savings Pills
+                    // Savings Pills - schön abgerundet mit gutem Klickgefühl
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(25, 50, 100, 200).forEach { amount ->
                             val isSelected = selectedMonthlySavings == amount
                             val bgColor by animateColorAsState(
-                                if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.surfaceVariant,
+                                if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.surface,
                                 label = "chipBg"
                             )
                             val textColor by animateColorAsState(
-                                if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                                 label = "chipText"
                             )
 
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(bgColor)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
                                     .clickable { selectedMonthlySavings = amount }
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -528,7 +553,7 @@ fun AiSavingsScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Results Box with Fun Milestone
                     val r = 0.07 / 12.0
@@ -553,58 +578,75 @@ fun AiSavingsScreen(
                         }
                     }
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp)
+                    // Großzügiges, wunderschön abgerundetes weißes Ergebnisfenster mit viel Platz
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 2.dp,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = if (isEn) "In 10 years:" else "In 10 Jahren:",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = "≈ ${wholeNumberFormat.format(future10)} €",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = if (isEn) "In 25 years:" else "In 25 Jahren:",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = "≈ ${wholeNumberFormat.format(future25)} €",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF16A34A)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF15803D).copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .padding(18.dp)
                         ) {
-                            Text(
-                                text = milestoneReward,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF15803D)
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = if (isEn) "In 10 years:" else "In 10 Jahren:",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "≈ ${wholeNumberFormat.format(future10)} €",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = if (isEn) "In 25 years:" else "In 25 Jahren:",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "≈ ${wholeNumberFormat.format(future25)} €",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF16A34A)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF0284C7).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
+                            ) {
+                                Text(
+                                    text = milestoneReward,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0284C7)
+                                )
+                            }
                         }
                     }
                 }

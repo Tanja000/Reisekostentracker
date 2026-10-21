@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.model
+package de.saveiq.app.model
 
 enum class AppLanguage(val code: String, val flag: String, val displayName: String) {
     DE("de", "🇩🇪", "Deutsch"),
@@ -153,8 +153,8 @@ object AppStrings {
     fun compoundInterestTitle(lang: AppLanguage) =
         if (lang.isEnglish) "What-If Compound Interest" else "Was-Wäre-Wenn Zinseszins"
     fun worldBankInflation(rate: Double, lang: AppLanguage) =
-        if (lang.isEnglish) "World Bank Inflation ${String.format(java.util.Locale.US, "%.1f", rate)}%"
-        else "Weltbank-Inflation ${String.format(java.util.Locale.GERMAN, "%.1f", rate)}%"
+        if (lang.isEnglish) "World Bank Inflation UK ${String.format(java.util.Locale.US, "%.2f", rate)}%"
+        else "Weltbank-Inflation DE ${String.format(java.util.Locale.GERMAN, "%.2f", rate)}%"
     fun savingsHacks(lang: AppLanguage) =
         if (lang.isEnglish) "Savings Hacks" else "Spar-Hacks"
     fun consciousSpendingScore(lang: AppLanguage) =

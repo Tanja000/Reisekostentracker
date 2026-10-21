@@ -23,28 +23,40 @@ data class CompoundResult(
 class WorldBankApiService {
 
     companion object {
-        private const val WORLDBANK_GERMANY_INFLATION_URL =
+        private const val WORLDBANK_DEU_INFLATION_URL =
             "https://api.worldbank.org/v2/country/DEU/indicator/FP.CPI.TOTL.ZG?format=json"
-        
-        // Historischer Durchschnitt Weltbank Deutschland Inflation
-        const val DEFAULT_INFLATION_RATE = 2.25 // 2.25%
-        // Historische Durchschnittsrendite weltweiter Aktienmarkt (z.B. MSCI World / S&P 500)
+        private const val WORLDBANK_GBR_INFLATION_URL =
+            "https://api.worldbank.org/v2/country/GBR/indicator/FP.CPI.TOTL.ZG?format=json"
+
+        // Neueste historische Richtwerte / Fallback Weltbank
+        const val DEFAULT_INFLATION_RATE = 2.17 // 2.17% (Deutschland)
+        const val DEFAULT_GBR_INFLATION_RATE = 3.88 // 3.88% (UK / England)
+        // Historische Durchschnittsrendite weltweiter Aktienmarkt (MSCI World / S&P 500)
         const val DEFAULT_EQUITY_RETURN_RATE = 7.0 // 7.0%
     }
 
-    private var cachedInflationRate: Double? = null
+    private var cachedDeuInflationRate: Double? = null
+    private var cachedGbrInflationRate: Double? = null
 
     /**
-     * Ruft die offizielle Inflationsrate für Deutschland von der Weltbank API ab.
-     * Nutzt Dispatchers.IO und puffert das Ergebnis.
+     * Ruft die tagesaktuelle, neueste Inflationsrate für Deutschland (DEU) oder England/UK (GBR)
+     * direkt von der offiziellen Weltbank API ab.
      */
-    suspend fun getGermanyInflationRate(forceRefresh: Boolean = false): Double = withContext(Dispatchers.IO) {
+    suspend fun getInflationRate(
+        countryCode: String = "DEU",
+        forceRefresh: Boolean = false
+    ): Double = withContext(Dispatchers.IO) {
+        val isUk = countryCode.equals("GBR", true) || countryCode.equals("GB", true) || countryCode.equals("UK", true)
         if (!forceRefresh) {
-            cachedInflationRate?.let { return@withContext it }
+            val cached = if (isUk) cachedGbrInflationRate else cachedDeuInflationRate
+            if (cached != null) return@withContext cached
         }
 
+        val urlStr = if (isUk) WORLDBANK_GBR_INFLATION_URL else WORLDBANK_DEU_INFLATION_URL
+        val fallback = if (isUk) DEFAULT_GBR_INFLATION_RATE else DEFAULT_INFLATION_RATE
+
         try {
-            val url = URL(WORLDBANK_GERMANY_INFLATION_URL)
+            val url = URL(urlStr)
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 4000
                 readTimeout = 4000
@@ -62,8 +74,12 @@ class WorldBankApiService {
                         val record = dataRecords.getJSONObject(i)
                         if (!record.isNull("value")) {
                             val rate = record.getDouble("value")
-                            if (rate in -5.0..25.0) {
-                                cachedInflationRate = rate
+                            if (rate in -5.0..30.0) {
+                                if (isUk) {
+                                    cachedGbrInflationRate = rate
+                                } else {
+                                    cachedDeuInflationRate = rate
+                                }
                                 return@withContext rate
                             }
                         }
@@ -71,12 +87,22 @@ class WorldBankApiService {
                 }
             }
         } catch (_: Exception) {
-            // Offline oder Timeout: Sicherer Fallback auf Weltbank-Durchschnitt
+            // Offline oder Timeout: Sicherer Fallback auf Weltbank-Referenz
         }
 
-        cachedInflationRate = DEFAULT_INFLATION_RATE
-        DEFAULT_INFLATION_RATE
+        if (isUk) {
+            cachedGbrInflationRate = fallback
+        } else {
+            cachedDeuInflationRate = fallback
+        }
+        fallback
     }
+
+    suspend fun getGermanyInflationRate(forceRefresh: Boolean = false): Double =
+        getInflationRate("DEU", forceRefresh)
+
+    suspend fun getUkInflationRate(forceRefresh: Boolean = false): Double =
+        getInflationRate("GBR", forceRefresh)
 
     /**
      * Berechnet Zinseszins und Kaufkraft nach Inflation über n Jahre.
@@ -88,7 +114,7 @@ class WorldBankApiService {
         amount: Double,
         years: Int = 30,
         annualReturnRate: Double = DEFAULT_EQUITY_RETURN_RATE,
-        inflationRate: Double = (cachedInflationRate ?: DEFAULT_INFLATION_RATE)
+        inflationRate: Double = (cachedDeuInflationRate ?: DEFAULT_INFLATION_RATE)
     ): CompoundResult {
         val r = annualReturnRate / 100.0
         val i = inflationRate / 100.0
