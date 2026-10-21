@@ -75,12 +75,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class MapPriceFilter {
-    ALL,
-    EXPENSIVE_ONLY, // > 50€
-    CHEAP_ONLY      // < 15€
-}
-
 @Composable
 fun MapScreen(
     viewModel: ExpenseViewModel,
@@ -93,19 +87,11 @@ fun MapScreen(
     val isEn = currentLanguage.isEnglish
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
-    var priceFilter by remember { mutableStateOf(MapPriceFilter.ALL) }
-
     val expensesWithLocation = remember(expenses) {
         expenses.filter { it.latitude != null && it.longitude != null }
     }
 
-    val displayedExpenses = remember(expensesWithLocation, priceFilter) {
-        when (priceFilter) {
-            MapPriceFilter.ALL -> expensesWithLocation
-            MapPriceFilter.EXPENSIVE_ONLY -> expensesWithLocation.filter { it.amount >= 50.0 }
-            MapPriceFilter.CHEAP_ONLY -> expensesWithLocation.filter { it.amount < 15.0 }
-        }
-    }
+    val displayedExpenses = expensesWithLocation
 
     val sortedByCost = remember(displayedExpenses) {
         displayedExpenses.sortedByDescending { it.amount }
@@ -213,38 +199,6 @@ fun MapScreen(
                     LegendItem(color = Color(0xFFF59E0B), label = if (isEn) "15-50 € (Moderate)" else "15-50 € (Moderat)")
                     LegendItem(color = Color(0xFFF97316), label = if (isEn) "50-100 € (Upscale)" else "50-100 € (Gehoben)")
                     LegendItem(color = Color(0xFFDC2626), label = if (isEn) "> 100 € 🔥 (Luxury)" else "> 100 € 🔥 (Luxus)")
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Filter Chips
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = priceFilter == MapPriceFilter.ALL,
-                        onClick = { priceFilter = MapPriceFilter.ALL },
-                        label = { Text("${if (isEn) "All" else "Alle"} (${expensesWithLocation.size})") }
-                    )
-                    FilterChip(
-                        selected = priceFilter == MapPriceFilter.EXPENSIVE_ONLY,
-                        onClick = { priceFilter = MapPriceFilter.EXPENSIVE_ONLY },
-                        label = { Text(if (isEn) "🔥 Expensive (> 50 €)" else "🔥 Teuer (> 50 €)") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFFEE2E2),
-                            selectedLabelColor = Color(0xFFB91C1C)
-                        )
-                    )
-                    FilterChip(
-                        selected = priceFilter == MapPriceFilter.CHEAP_ONLY,
-                        onClick = { priceFilter = MapPriceFilter.CHEAP_ONLY },
-                        label = { Text(if (isEn) "🟢 Budget (< 15 €)" else "🟢 Günstig (< 15 €)") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFD1FAE5),
-                            selectedLabelColor = Color(0xFF047857)
-                        )
-                    )
                 }
             }
         }

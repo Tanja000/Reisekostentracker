@@ -303,7 +303,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
     fun getAllExpenses(): List<Expense> {
         val list = mutableListOf<Expense>()
         val db = readableDatabase
-        val cursor = db.query(TABLE_EXPENSES, null, null, null, null, null, "$COL_EXP_DATE DESC")
+        val cursor = db.query(TABLE_EXPENSES, null, null, null, null, null, "$COL_EXP_DATE DESC, rowid DESC")
         cursor.use {
             while (it.moveToNext()) {
                 val latIndex = it.getColumnIndexOrThrow(COL_EXP_LAT)

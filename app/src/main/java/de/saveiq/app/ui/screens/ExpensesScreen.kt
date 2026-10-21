@@ -380,6 +380,7 @@ fun ExpensesScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(78.dp)
                                 .clickable { viewModel.openEditExpenseDialog(expense) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
@@ -388,16 +389,19 @@ fun ExpensesScreen(
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    .fillMaxSize()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CategoryIconBadge(category = cat, size = 44)
+                                CategoryIconBadge(category = cat, size = 42)
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    // Row 1: Titel links, Betrag rechts
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    // Row 1: Titel links, Emotion, Betrag rechts
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -415,17 +419,10 @@ fun ExpensesScreen(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             if (!expense.feelingEmoji.isNullOrBlank()) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Surface(
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                                                ) {
-                                                    Text(
-                                                        text = expense.feelingEmoji,
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
+                                                Text(
+                                                    text = " ${expense.feelingEmoji}",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
                                             }
                                         }
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -437,9 +434,9 @@ fun ExpensesScreen(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
-                                    // Row 2: Kategorie • Datum • Ort • Zahlart • Löschen (alles horizontal lesbar)
+                                    // Row 2: Kategorie • Datum • Ort • Zahlart
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
@@ -448,12 +445,14 @@ fun ExpensesScreen(
                                             text = AppStrings.categoryName(cat.id, cat.name, currentLanguage),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = cat.color,
-                                            fontWeight = FontWeight.SemiBold
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1
                                         )
                                         Text(
                                             text = " • ${dateFormat.format(Date(expense.date))}",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
+                                            color = MaterialTheme.colorScheme.outline,
+                                            maxLines = 1
                                         )
                                         if (!expense.locationName.isNullOrBlank()) {
                                             Text(
@@ -461,26 +460,12 @@ fun ExpensesScreen(
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.outline,
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
                                         }
 
                                         Spacer(modifier = Modifier.weight(1f))
-
-                                        // Auto-recorded indicator icon if notes indicate recurring/standing order
-                                        if (expense.notes.contains("Dauerauftrag") || expense.notes.contains("Automatisch") || expense.notes.contains("Auto")) {
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                                modifier = Modifier.padding(end = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = "🔄",
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
 
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
@@ -494,17 +479,6 @@ fun ExpensesScreen(
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
-                                    }
-
-                                    if (expense.notes.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = expense.notes,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
                                     }
                                 }
                             }

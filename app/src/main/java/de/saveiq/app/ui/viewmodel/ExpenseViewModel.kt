@@ -301,7 +301,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 categoryId = categoryId,
                 tripId = null,
                 date = System.currentTimeMillis(),
-                notes = "Schnellbuchung",
+                notes = "",
                 paymentMethod = paymentMethod,
                 latitude = resolvedPlace.latitude,
                 longitude = resolvedPlace.longitude,
@@ -535,9 +535,10 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                             latitude = resolved.latitude,
                             longitude = resolved.longitude,
                             locationName = resolved.name,
-                            notes = notes,
+                            notes = notes.trim(),
                             isActive = true
-                        )
+                        ),
+                        bookInitialExpense = false
                     )
                 }
             }
@@ -596,7 +597,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 categoryId = categoryId,
                 tripId = null,
                 date = now,
-                notes = if (notes.isNotBlank()) "$notes (Dauerauftrag)" else "Dauerauftrag (${interval.labelDe})",
+                notes = notes.trim(),
                 paymentMethod = paymentMethod,
                 latitude = resolved.latitude,
                 longitude = resolved.longitude,

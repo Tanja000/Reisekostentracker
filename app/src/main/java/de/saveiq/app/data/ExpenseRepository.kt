@@ -50,8 +50,8 @@ class ExpenseRepository(context: Context) {
         }
 
         val demoList = listOf(
-            Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(0, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz", feelingEmoji = null),
-            Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(0, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro", feelingEmoji = "😊"),
+            Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(1, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz", feelingEmoji = null),
+            Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(1, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro", feelingEmoji = "😊"),
             Expense(UUID.randomUUID().toString(), "Miete & Nebenkosten", 850.00, "EUR", "cat_wohnen", null, daysAgo(1, 8), "Monatsüberweisung", "Online", 48.1400, 11.5650, "Wohnung", feelingEmoji = null),
             Expense(UUID.randomUUID().toString(), "Tanken Aral Super E10", 56.80, "EUR", "cat_transport", null, daysAgo(2, 17), "42 Liter Benzin", "Karte", 48.1650, 11.5950, "Aral Tankstelle", feelingEmoji = "💸"),
             Expense(UUID.randomUUID().toString(), "Fitnessstudio Monatsbeitrag", 35.00, "EUR", "cat_abos", null, daysAgo(3, 9), "FitX Mitgliedschaft", "Online", 48.1300, 11.5900, "Gym Studio", feelingEmoji = "😊"),
@@ -162,11 +162,11 @@ class ExpenseRepository(context: Context) {
                     categoryId = rec.categoryId,
                     tripId = null,
                     date = due,
-                    notes = if (rec.notes.isNotBlank()) "${rec.notes} (Dauerauftrag)" else "Automatische Buchung (${rec.interval.labelDe})",
+                    notes = rec.notes.trim(),
                     paymentMethod = rec.paymentMethod,
                     latitude = rec.latitude,
                     longitude = rec.longitude,
-                    locationName = rec.locationName ?: "Dauerauftrag",
+                    locationName = rec.locationName,
                     feelingEmoji = null
                 )
                 dbHelper.insertExpense(newExp)
@@ -247,7 +247,8 @@ class ExpenseRepository(context: Context) {
         )
         scope.launch {
             dbHelper.insertExpense(expense)
-            _expenses.value = dbHelper.getAllExpenses()
+            val all = dbHelper.getAllExpenses()
+            _expenses.value = listOf(expense) + all.filter { it.id != expense.id }
         }
     }
 
@@ -377,27 +378,29 @@ class ExpenseRepository(context: Context) {
     }
 
     // Recurring Expenses Operations
-    fun addRecurringExpense(rec: RecurringExpense) {
+    fun addRecurringExpense(rec: RecurringExpense, bookInitialExpense: Boolean = true) {
         scope.launch {
             dbHelper.insertRecurringExpense(rec)
-            // Immediately book current cycle so it appears across ALL tabs:
-            val now = System.currentTimeMillis()
-            val initialExp = Expense(
-                id = UUID.randomUUID().toString(),
-                title = rec.title,
-                amount = rec.amount,
-                currency = rec.currency,
-                categoryId = rec.categoryId,
-                tripId = null,
-                date = if (rec.startDate > 0L) rec.startDate else now,
-                notes = if (rec.notes.isNotBlank()) "${rec.notes} (Dauerauftrag)" else "Dauerauftrag (${rec.interval.labelDe})",
-                paymentMethod = rec.paymentMethod,
-                latitude = rec.latitude,
-                longitude = rec.longitude,
-                locationName = rec.locationName ?: "Dauerauftrag",
-                feelingEmoji = null
-            )
-            dbHelper.insertExpense(initialExp)
+            if (bookInitialExpense) {
+                // Immediately book current cycle so it appears across ALL tabs:
+                val now = System.currentTimeMillis()
+                val initialExp = Expense(
+                    id = UUID.randomUUID().toString(),
+                    title = rec.title,
+                    amount = rec.amount,
+                    currency = rec.currency,
+                    categoryId = rec.categoryId,
+                    tripId = null,
+                    date = if (rec.startDate > 0L) rec.startDate else now,
+                    notes = rec.notes.trim(),
+                    paymentMethod = rec.paymentMethod,
+                    latitude = rec.latitude,
+                    longitude = rec.longitude,
+                    locationName = rec.locationName,
+                    feelingEmoji = null
+                )
+                dbHelper.insertExpense(initialExp)
+            }
             processRecurringExpenses()
             _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
             _expenses.value = dbHelper.getAllExpenses()
@@ -410,7 +413,8 @@ class ExpenseRepository(context: Context) {
             dbHelper.insertExpense(initialExpense)
             processRecurringExpenses()
             _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
-            _expenses.value = dbHelper.getAllExpenses()
+            val all = dbHelper.getAllExpenses()
+            _expenses.value = listOf(initialExpense) + all.filter { it.id != initialExpense.id }
         }
     }
 
@@ -440,11 +444,11 @@ class ExpenseRepository(context: Context) {
                 categoryId = rec.categoryId,
                 tripId = null,
                 date = now,
-                notes = if (rec.notes.isNotBlank()) "${rec.notes} (Manuell ausgelöst)" else "Dauerauftrag (${rec.interval.labelDe})",
+                notes = rec.notes.trim(),
                 paymentMethod = rec.paymentMethod,
                 latitude = rec.latitude,
                 longitude = rec.longitude,
-                locationName = rec.locationName ?: "Dauerauftrag",
+                locationName = rec.locationName,
                 feelingEmoji = null
             )
             dbHelper.insertExpense(newExp)
@@ -456,7 +460,8 @@ class ExpenseRepository(context: Context) {
                 )
             )
             _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
-            _expenses.value = dbHelper.getAllExpenses()
+            val all = dbHelper.getAllExpenses()
+            _expenses.value = listOf(newExp) + all.filter { it.id != newExp.id }
         }
     }
 }
