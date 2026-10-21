@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.LocationOn
@@ -34,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,9 +50,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
 import com.example.reisekostentracker.model.PurchaseEmotions
+import com.example.reisekostentracker.model.RecurringInterval
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -62,6 +67,7 @@ fun AddEditExpenseDialog(
     initialExpense: Expense?,
     categories: List<ExpenseCategory>,
     currentLocationName: String? = null,
+    language: AppLanguage = AppLanguage.DE,
     onDismiss: () -> Unit,
     onSave: (
         title: String,
@@ -73,10 +79,14 @@ fun AddEditExpenseDialog(
         notes: String,
         paymentMethod: String,
         locationName: String?,
-        feelingEmoji: String?
+        feelingEmoji: String?,
+        isRecurring: Boolean,
+        recurringInterval: RecurringInterval
     ) -> Unit
 ) {
     var title by remember { mutableStateOf(initialExpense?.title ?: "") }
+    var isRecurring by remember { mutableStateOf(false) }
+    var recurringInterval by remember { mutableStateOf(RecurringInterval.MONTHLY) }
     var amountText by remember {
         mutableStateOf(
             if (initialExpense != null) String.format(Locale.GERMAN, "%.2f", initialExpense.amount)
@@ -382,12 +392,87 @@ fun AddEditExpenseDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notiz (optional)") },
+                    label = { Text(if (language.isEnglish) "Notes (optional)" else "Notiz (optional)") },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null) },
                     singleLine = false,
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Recurring Expense Section (Dauerauftrag / Automatische Erfassung)
+                if (initialExpense == null) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Autorenew,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = if (language.isEnglish) "Recurring Expense" else "Wiederkehrende Ausgabe",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = if (language.isEnglish) "Automatically recorded every cycle" else "Automatisch in Intervallen erfassen",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = isRecurring,
+                                    onCheckedChange = { isRecurring = it }
+                                )
+                            }
+
+                            if (isRecurring) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = if (language.isEnglish) "Interval:" else "Intervall:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    RecurringInterval.values().forEach { interval ->
+                                        FilterChip(
+                                            selected = recurringInterval == interval,
+                                            onClick = { recurringInterval = interval },
+                                            label = {
+                                                Text(
+                                                    text = interval.label(language.isEnglish),
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -411,17 +496,25 @@ fun AddEditExpenseDialog(
                             notes.trim(),
                             paymentMethod,
                             locationName.trim().ifEmpty { null },
-                            feelingEmoji
+                            feelingEmoji,
+                            isRecurring,
+                            recurringInterval
                         )
                     }
                 }
             ) {
-                Text(if (initialExpense == null) "Hinzufügen" else "Speichern")
+                Text(
+                    if (initialExpense == null) {
+                        if (language.isEnglish) "Add" else "Hinzufügen"
+                    } else {
+                        if (language.isEnglish) "Save" else "Speichern"
+                    }
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(if (language.isEnglish) "Cancel" else "Abbrechen")
             }
         }
     )

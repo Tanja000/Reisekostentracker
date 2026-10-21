@@ -50,13 +50,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.ui.components.AddEditCategoryDialog
 import com.example.reisekostentracker.ui.components.AddEditExpenseDialog
 import com.example.reisekostentracker.ui.screens.AiSavingsScreen
@@ -67,13 +71,13 @@ import com.example.reisekostentracker.ui.screens.MapScreen
 import com.example.reisekostentracker.ui.screens.StatisticsScreen
 import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
 
-sealed class NavItem(val title: String, val icon: ImageVector) {
-    object Expenses : NavItem("Ausgaben", Icons.Default.Payments)
-    object Statistics : NavItem("Statistik", Icons.Default.Analytics)
-    object SavingsAi : NavItem("Spar-KI", Icons.Default.AutoAwesome)
-    object Map : NavItem("Karte", Icons.Default.Map)
-    object Categories : NavItem("Kategorien", Icons.Default.Category)
-    object Budgets : NavItem("Budgets", Icons.Default.AccountBalanceWallet)
+sealed class NavItem(val icon: ImageVector) {
+    object Expenses : NavItem(Icons.Default.Payments)
+    object Statistics : NavItem(Icons.Default.Analytics)
+    object SavingsAi : NavItem(Icons.Default.AutoAwesome)
+    object Map : NavItem(Icons.Default.Map)
+    object Categories : NavItem(Icons.Default.Category)
+    object Budgets : NavItem(Icons.Default.AccountBalanceWallet)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +93,7 @@ fun MainApp(
     val isDarkTheme by viewModel.isDarkTheme.collectAsState()
     val isLocationConsentDialogOpen by viewModel.isLocationConsentDialogOpen.collectAsState()
     val hasLocationConsent by viewModel.hasLocationConsent.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -164,6 +169,27 @@ fun MainApp(
                     }
                 },
                 actions = {
+                    // Language Switcher Button with British Flag 🇬🇧
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .clickable { viewModel.toggleLanguage() }
+                                .padding(horizontal = 9.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (currentLanguage == AppLanguage.DE) "🇬🇧 EN" else "🇩🇪 DE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+
                     // GPS Location Refresh Button
                     IconButton(onClick = {
                         permissionLauncher.launch(
@@ -175,7 +201,7 @@ fun MainApp(
                     }) {
                         Icon(
                             imageVector = Icons.Default.MyLocation,
-                            contentDescription = "GPS Standort",
+                            contentDescription = if (currentLanguage.isEnglish) "GPS Location" else "GPS Standort",
                             tint = if (hasLocationConsent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                         )
                     }
@@ -197,14 +223,14 @@ fun MainApp(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Demo-Finanzdaten laden") },
+                            text = { Text(if (currentLanguage.isEnglish) "Load Demo Financial Data" else "Demo-Finanzdaten laden") },
                             onClick = {
                                 viewModel.seedDemoData()
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Alle Ausgaben löschen") },
+                            text = { Text(if (currentLanguage.isEnglish) "Delete All Expenses" else "Alle Ausgaben löschen") },
                             onClick = {
                                 viewModel.clearAllData()
                                 showMenu = false
@@ -218,15 +244,24 @@ fun MainApp(
             )
         },
         bottomBar = {
+            val navTitles = listOf(
+                AppStrings.navExpenses(currentLanguage),
+                AppStrings.navStatistics(currentLanguage),
+                AppStrings.navSavingsAi(currentLanguage),
+                AppStrings.navMap(currentLanguage),
+                AppStrings.navCategories(currentLanguage),
+                AppStrings.navBudgets(currentLanguage)
+            )
             NavigationBar {
                 navItems.forEachIndexed { index, item ->
+                    val title = navTitles[index]
                     NavigationBarItem(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
-                        icon = { Icon(item.icon, contentDescription = item.title, modifier = Modifier.size(22.dp)) },
+                        icon = { Icon(item.icon, contentDescription = title, modifier = Modifier.size(22.dp)) },
                         label = {
                             Text(
-                                text = item.title,
+                                text = title,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -270,11 +305,17 @@ fun MainApp(
                 )
             },
             title = {
-                Text(text = "GPS-Standort erfassen?", fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (currentLanguage.isEnglish) "Capture GPS Location?" else "GPS-Standort erfassen?",
+                    fontWeight = FontWeight.Bold
+                )
             },
             text = {
                 Text(
-                    text = "Möchtest du, dass TrackMyCent beim Eintragen von Ausgaben automatisch deinen GPS-Standort erfasst?\n\nSo siehst du auf der Ausgaben-Karte direkt, wo du warst und wo du wie viel Geld bezahlt hast."
+                    text = if (currentLanguage.isEnglish)
+                        "Would you like SaveIQ to automatically record your GPS location when logging expenses?\n\nThis lets you see on the map exactly where you made each purchase."
+                    else
+                        "Möchtest du, dass SaveIQ beim Eintragen von Ausgaben automatisch deinen GPS-Standort erfasst?\n\nSo siehst du auf der Ausgaben-Karte direkt, wo du warst und wo du wie viel Geld bezahlt hast."
                 )
             },
             confirmButton = {
@@ -286,12 +327,12 @@ fun MainApp(
                         )
                     )
                 }) {
-                    Text("Standort erlauben")
+                    Text(if (currentLanguage.isEnglish) "Allow Location" else "Standort erlauben")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.setLocationConsent(false) }) {
-                    Text("Nicht jetzt")
+                    Text(if (currentLanguage.isEnglish) "Not now" else "Nicht jetzt")
                 }
             }
         )
@@ -304,12 +345,22 @@ fun MainApp(
             initialExpense = editingExpense,
             categories = categories,
             currentLocationName = lastLocationName,
+            language = currentLanguage,
             onDismiss = { viewModel.closeExpenseDialog() },
-            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName, feelingEmoji ->
+            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName, feelingEmoji, isRecurring, recurringInterval ->
                 viewModel.saveExpense(
-                    title, amount, currency, categoryId, tripId, date, notes, paymentMethod,
+                    title = title,
+                    amount = amount,
+                    currency = currency,
+                    categoryId = categoryId,
+                    tripId = tripId,
+                    date = date,
+                    notes = notes,
+                    paymentMethod = paymentMethod,
                     locationName = locationName,
-                    feelingEmoji = feelingEmoji
+                    feelingEmoji = feelingEmoji,
+                    isRecurring = isRecurring,
+                    recurringInterval = recurringInterval
                 )
             }
         )

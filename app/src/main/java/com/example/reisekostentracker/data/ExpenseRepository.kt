@@ -3,6 +3,8 @@ package com.example.reisekostentracker.data
 import android.content.Context
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.model.RecurringExpense
+import com.example.reisekostentracker.model.RecurringInterval
 import com.example.reisekostentracker.model.Trip
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +22,9 @@ class ExpenseRepository(context: Context) {
 
     private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
     val expenses: StateFlow<List<Expense>> = _expenses.asStateFlow()
+
+    private val _recurringExpenses = MutableStateFlow<List<RecurringExpense>>(emptyList())
+    val recurringExpenses: StateFlow<List<RecurringExpense>> = _recurringExpenses.asStateFlow()
 
     private val _categories = MutableStateFlow<List<ExpenseCategory>>(emptyList())
     val categories: StateFlow<List<ExpenseCategory>> = _categories.asStateFlow()
@@ -62,16 +67,143 @@ class ExpenseRepository(context: Context) {
         demoList.forEach { dbHelper.insertExpense(it) }
     }
 
+    private fun advanceDueDate(currentDue: Long, interval: RecurringInterval): Long {
+        val cal = Calendar.getInstance().apply { timeInMillis = currentDue }
+        when (interval) {
+            RecurringInterval.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
+            RecurringInterval.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+            RecurringInterval.MONTHLY -> cal.add(Calendar.MONTH, 1)
+            RecurringInterval.YEARLY -> cal.add(Calendar.YEAR, 1)
+        }
+        return cal.timeInMillis
+    }
+
+    private fun insertInitialRecurringData() {
+        val now = System.currentTimeMillis()
+        val nextMonthCal = Calendar.getInstance().apply {
+            timeInMillis = now
+            set(Calendar.DAY_OF_MONTH, 1)
+            add(Calendar.MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 0)
+        }
+        val nextMonth = nextMonthCal.timeInMillis
+
+        val defaultRecs = listOf(
+            RecurringExpense(
+                id = "rec_rent",
+                title = "Miete & Nebenkosten",
+                amount = 850.00,
+                currency = "EUR",
+                categoryId = "cat_wohnen",
+                interval = RecurringInterval.MONTHLY,
+                startDate = now,
+                lastExecutionDate = now,
+                nextDueDate = nextMonth,
+                paymentMethod = "Dauerauftrag",
+                locationName = "Wohnung",
+                notes = "Monatliche Warmmiete"
+            ),
+            RecurringExpense(
+                id = "rec_gym",
+                title = "Fitnessstudio FitX",
+                amount = 35.00,
+                currency = "EUR",
+                categoryId = "cat_abos",
+                interval = RecurringInterval.MONTHLY,
+                startDate = now,
+                lastExecutionDate = now,
+                nextDueDate = nextMonth,
+                paymentMethod = "Online",
+                locationName = "Gym Studio",
+                notes = "Monatsbeitrag"
+            ),
+            RecurringExpense(
+                id = "rec_streaming",
+                title = "Netflix & Spotify Abos",
+                amount = 22.98,
+                currency = "EUR",
+                categoryId = "cat_abos",
+                interval = RecurringInterval.MONTHLY,
+                startDate = now,
+                lastExecutionDate = now,
+                nextDueDate = nextMonth,
+                paymentMethod = "Online",
+                locationName = "Online",
+                notes = "Streaming Bundle"
+            )
+        )
+        defaultRecs.forEach { dbHelper.insertRecurringExpense(it) }
+    }
+
+    fun processRecurringExpenses() {
+        val now = System.currentTimeMillis()
+        val allRecs = dbHelper.getAllRecurringExpenses()
+        var updatedAny = false
+
+        for (rec in allRecs) {
+            if (!rec.isActive) continue
+            var due = if (rec.nextDueDate > 0L) rec.nextDueDate else rec.startDate
+            var bookedCycles = 0
+            val maxCycles = 24 // Safety limit
+
+            while (due <= now && bookedCycles < maxCycles) {
+                val newExp = Expense(
+                    id = UUID.randomUUID().toString(),
+                    title = rec.title,
+                    amount = rec.amount,
+                    currency = rec.currency,
+                    categoryId = rec.categoryId,
+                    tripId = null,
+                    date = due,
+                    notes = if (rec.notes.isNotBlank()) "${rec.notes} (Dauerauftrag)" else "Automatische Buchung (${rec.interval.labelDe})",
+                    paymentMethod = rec.paymentMethod,
+                    latitude = null,
+                    longitude = null,
+                    locationName = rec.locationName ?: "Dauerauftrag",
+                    feelingEmoji = null
+                )
+                dbHelper.insertExpense(newExp)
+                due = advanceDueDate(due, rec.interval)
+                bookedCycles++
+                updatedAny = true
+            }
+
+            if (bookedCycles > 0) {
+                dbHelper.updateRecurringExpense(
+                    rec.copy(
+                        lastExecutionDate = now,
+                        nextDueDate = due
+                    )
+                )
+            }
+        }
+
+        _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+        if (updatedAny) {
+            _expenses.value = dbHelper.getAllExpenses()
+        }
+    }
+
     private fun refreshAll() {
         scope.launch {
             _categories.value = dbHelper.getAllCategories()
             _trips.value = dbHelper.getAllTrips()
+
+            val existingRecs = dbHelper.getAllRecurringExpenses()
+            if (existingRecs.isEmpty()) {
+                insertInitialRecurringData()
+            }
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
 
             val existing = dbHelper.getAllExpenses()
             if (existing.isEmpty()) {
                 insertInitialDemoData()
                 prefs.edit().putBoolean("has_seeded_initial", true).apply()
             }
+
+            // Process any due recurring expenses automatically
+            processRecurringExpenses()
 
             val rawExpenses = dbHelper.getAllExpenses()
 
@@ -264,6 +396,61 @@ class ExpenseRepository(context: Context) {
             )
 
             demoList.forEach { dbHelper.insertExpense(it) }
+            _expenses.value = dbHelper.getAllExpenses()
+        }
+    }
+
+    // Recurring Expenses Operations
+    fun addRecurringExpense(rec: RecurringExpense) {
+        scope.launch {
+            dbHelper.insertRecurringExpense(rec)
+            processRecurringExpenses()
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+        }
+    }
+
+    fun updateRecurringExpense(rec: RecurringExpense) {
+        scope.launch {
+            dbHelper.updateRecurringExpense(rec)
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+        }
+    }
+
+    fun deleteRecurringExpense(id: String) {
+        scope.launch {
+            dbHelper.deleteRecurringExpense(id)
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
+        }
+    }
+
+    fun triggerRecurringNow(id: String) {
+        scope.launch {
+            val rec = dbHelper.getAllRecurringExpenses().find { it.id == id } ?: return@launch
+            val now = System.currentTimeMillis()
+            val newExp = Expense(
+                id = UUID.randomUUID().toString(),
+                title = rec.title,
+                amount = rec.amount,
+                currency = rec.currency,
+                categoryId = rec.categoryId,
+                tripId = null,
+                date = now,
+                notes = if (rec.notes.isNotBlank()) "${rec.notes} (Manuell ausgelöst)" else "Dauerauftrag (${rec.interval.labelDe})",
+                paymentMethod = rec.paymentMethod,
+                latitude = null,
+                longitude = null,
+                locationName = rec.locationName ?: "Dauerauftrag",
+                feelingEmoji = null
+            )
+            dbHelper.insertExpense(newExp)
+            val nextDue = advanceDueDate(if (rec.nextDueDate > now) rec.nextDueDate else now, rec.interval)
+            dbHelper.updateRecurringExpense(
+                rec.copy(
+                    lastExecutionDate = now,
+                    nextDueDate = nextDue
+                )
+            )
+            _recurringExpenses.value = dbHelper.getAllRecurringExpenses()
             _expenses.value = dbHelper.getAllExpenses()
         }
     }

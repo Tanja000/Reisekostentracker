@@ -6,6 +6,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.model.RecurringExpense
+import com.example.reisekostentracker.model.RecurringInterval
 import com.example.reisekostentracker.model.Trip
 import java.util.UUID
 
@@ -13,7 +15,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
 
     companion object {
         const val DATABASE_NAME = "reisekosten.db"
-        const val DATABASE_VERSION = 3
+        const val DATABASE_VERSION = 4
 
         // Table Categories
         const val TABLE_CATEGORIES = "categories"
@@ -49,6 +51,22 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         const val COL_EXP_LNG = "longitude"
         const val COL_EXP_LOC_NAME = "location_name"
         const val COL_EXP_FEELING = "feeling_emoji"
+
+        // Table Recurring Expenses
+        const val TABLE_RECURRING = "recurring_expenses"
+        const val COL_REC_ID = "id"
+        const val COL_REC_TITLE = "title"
+        const val COL_REC_AMOUNT = "amount"
+        const val COL_REC_CURRENCY = "currency"
+        const val COL_REC_CAT_ID = "category_id"
+        const val COL_REC_INTERVAL = "interval"
+        const val COL_REC_START_DATE = "start_date"
+        const val COL_REC_LAST_EXEC = "last_execution_date"
+        const val COL_REC_NEXT_DUE = "next_due_date"
+        const val COL_REC_PAYMENT_METHOD = "payment_method"
+        const val COL_REC_LOC_NAME = "location_name"
+        const val COL_REC_NOTES = "notes"
+        const val COL_REC_IS_ACTIVE = "is_active"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -99,6 +117,26 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             """.trimIndent()
         )
 
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_RECURRING (
+                $COL_REC_ID TEXT PRIMARY KEY,
+                $COL_REC_TITLE TEXT NOT NULL,
+                $COL_REC_AMOUNT REAL NOT NULL,
+                $COL_REC_CURRENCY TEXT NOT NULL DEFAULT 'EUR',
+                $COL_REC_CAT_ID TEXT NOT NULL,
+                $COL_REC_INTERVAL TEXT NOT NULL DEFAULT 'MONTHLY',
+                $COL_REC_START_DATE INTEGER NOT NULL,
+                $COL_REC_LAST_EXEC INTEGER NOT NULL DEFAULT 0,
+                $COL_REC_NEXT_DUE INTEGER NOT NULL,
+                $COL_REC_PAYMENT_METHOD TEXT NOT NULL DEFAULT 'Dauerauftrag',
+                $COL_REC_LOC_NAME TEXT,
+                $COL_REC_NOTES TEXT,
+                $COL_REC_IS_ACTIVE INTEGER NOT NULL DEFAULT 1
+            )
+            """.trimIndent()
+        )
+
         // Seed default categories
         ExpenseCategory.defaultCategories.forEach { cat ->
             val values = ContentValues().apply {
@@ -120,6 +158,27 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         }
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE $TABLE_EXPENSES ADD COLUMN $COL_EXP_FEELING TEXT")
+        }
+        if (oldVersion < 4) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS $TABLE_RECURRING (
+                    $COL_REC_ID TEXT PRIMARY KEY,
+                    $COL_REC_TITLE TEXT NOT NULL,
+                    $COL_REC_AMOUNT REAL NOT NULL,
+                    $COL_REC_CURRENCY TEXT NOT NULL DEFAULT 'EUR',
+                    $COL_REC_CAT_ID TEXT NOT NULL,
+                    $COL_REC_INTERVAL TEXT NOT NULL DEFAULT 'MONTHLY',
+                    $COL_REC_START_DATE INTEGER NOT NULL,
+                    $COL_REC_LAST_EXEC INTEGER NOT NULL DEFAULT 0,
+                    $COL_REC_NEXT_DUE INTEGER NOT NULL,
+                    $COL_REC_PAYMENT_METHOD TEXT NOT NULL DEFAULT 'Dauerauftrag',
+                    $COL_REC_LOC_NAME TEXT,
+                    $COL_REC_NOTES TEXT,
+                    $COL_REC_IS_ACTIVE INTEGER NOT NULL DEFAULT 1
+                )
+                """.trimIndent()
+            )
         }
     }
 
@@ -316,5 +375,81 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
     fun clearAllData() {
         val db = writableDatabase
         db.delete(TABLE_EXPENSES, null, null)
+    }
+
+    // Recurring Expenses
+    fun getAllRecurringExpenses(): List<RecurringExpense> {
+        val list = mutableListOf<RecurringExpense>()
+        val db = readableDatabase
+        val cursor = db.query(TABLE_RECURRING, null, null, null, null, null, "$COL_REC_NEXT_DUE ASC")
+        cursor.use {
+            while (it.moveToNext()) {
+                val locIndex = it.getColumnIndexOrThrow(COL_REC_LOC_NAME)
+                val locName = if (it.isNull(locIndex)) null else it.getString(locIndex)
+                val intervalStr = it.getString(it.getColumnIndexOrThrow(COL_REC_INTERVAL)) ?: "MONTHLY"
+                list.add(
+                    RecurringExpense(
+                        id = it.getString(it.getColumnIndexOrThrow(COL_REC_ID)),
+                        title = it.getString(it.getColumnIndexOrThrow(COL_REC_TITLE)),
+                        amount = it.getDouble(it.getColumnIndexOrThrow(COL_REC_AMOUNT)),
+                        currency = it.getString(it.getColumnIndexOrThrow(COL_REC_CURRENCY)) ?: "EUR",
+                        categoryId = it.getString(it.getColumnIndexOrThrow(COL_REC_CAT_ID)),
+                        interval = RecurringInterval.fromCode(intervalStr),
+                        startDate = it.getLong(it.getColumnIndexOrThrow(COL_REC_START_DATE)),
+                        lastExecutionDate = it.getLong(it.getColumnIndexOrThrow(COL_REC_LAST_EXEC)),
+                        nextDueDate = it.getLong(it.getColumnIndexOrThrow(COL_REC_NEXT_DUE)),
+                        paymentMethod = it.getString(it.getColumnIndexOrThrow(COL_REC_PAYMENT_METHOD)) ?: "Dauerauftrag",
+                        locationName = locName,
+                        notes = it.getString(it.getColumnIndexOrThrow(COL_REC_NOTES)) ?: "",
+                        isActive = it.getInt(it.getColumnIndexOrThrow(COL_REC_IS_ACTIVE)) == 1
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun insertRecurringExpense(rec: RecurringExpense) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_REC_ID, rec.id)
+            put(COL_REC_TITLE, rec.title)
+            put(COL_REC_AMOUNT, rec.amount)
+            put(COL_REC_CURRENCY, rec.currency)
+            put(COL_REC_CAT_ID, rec.categoryId)
+            put(COL_REC_INTERVAL, rec.interval.code)
+            put(COL_REC_START_DATE, rec.startDate)
+            put(COL_REC_LAST_EXEC, rec.lastExecutionDate)
+            put(COL_REC_NEXT_DUE, rec.nextDueDate)
+            put(COL_REC_PAYMENT_METHOD, rec.paymentMethod)
+            put(COL_REC_LOC_NAME, rec.locationName)
+            put(COL_REC_NOTES, rec.notes)
+            put(COL_REC_IS_ACTIVE, if (rec.isActive) 1 else 0)
+        }
+        db.insertWithOnConflict(TABLE_RECURRING, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun updateRecurringExpense(rec: RecurringExpense) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_REC_TITLE, rec.title)
+            put(COL_REC_AMOUNT, rec.amount)
+            put(COL_REC_CURRENCY, rec.currency)
+            put(COL_REC_CAT_ID, rec.categoryId)
+            put(COL_REC_INTERVAL, rec.interval.code)
+            put(COL_REC_START_DATE, rec.startDate)
+            put(COL_REC_LAST_EXEC, rec.lastExecutionDate)
+            put(COL_REC_NEXT_DUE, rec.nextDueDate)
+            put(COL_REC_PAYMENT_METHOD, rec.paymentMethod)
+            put(COL_REC_LOC_NAME, rec.locationName)
+            put(COL_REC_NOTES, rec.notes)
+            put(COL_REC_IS_ACTIVE, if (rec.isActive) 1 else 0)
+        }
+        db.update(TABLE_RECURRING, values, "$COL_REC_ID = ?", arrayOf(rec.id))
+    }
+
+    fun deleteRecurringExpense(id: String) {
+        val db = writableDatabase
+        db.delete(TABLE_RECURRING, "$COL_REC_ID = ?", arrayOf(id))
     }
 }

@@ -12,21 +12,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +51,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,11 +64,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.AppLanguage
+import com.example.reisekostentracker.model.AppStrings
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.model.RecurringExpense
+import com.example.reisekostentracker.model.RecurringInterval
 import com.example.reisekostentracker.ui.components.CategoryChip
 import com.example.reisekostentracker.ui.components.CategoryIconBadge
 import com.example.reisekostentracker.ui.components.QuickAddConfirmDialog
@@ -84,18 +98,26 @@ fun ExpensesScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCatId by viewModel.selectedCategoryId.collectAsState()
     val lastLocationName by viewModel.lastLocationName.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val recurringExpenses by viewModel.recurringExpenses.collectAsState()
     var activeQuickAdd by remember { mutableStateOf<QuickAddPreset?>(null) }
+    var showRecurringDialog by remember { mutableStateOf(false) }
+    var showAddRecurringDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
-    val currencyFormat = remember {
-        NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    val currencyFormat = remember(currentLanguage) {
+        val locale = if (currentLanguage.isEnglish) Locale.US else Locale.GERMANY
+        NumberFormat.getNumberInstance(locale).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
     }
-    val dateFormat = remember { SimpleDateFormat("dd. MMM yyyy", Locale.GERMAN) }
+    val dateFormat = remember(currentLanguage) {
+        val locale = if (currentLanguage.isEnglish) Locale.US else Locale.GERMAN
+        SimpleDateFormat(if (currentLanguage.isEnglish) "MMM dd, yyyy" else "dd. MMM yyyy", locale)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -137,7 +159,7 @@ fun ExpensesScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Gesamtausgaben (${timeFilter.label})",
+                                text = "${AppStrings.totalExpenses(currentLanguage)} (${timeFilter.getLabel(currentLanguage)})",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -153,7 +175,7 @@ fun ExpensesScreen(
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Text(
-                                text = "${expenses.size} Einträge",
+                                text = AppStrings.entriesCount(expenses.size, currentLanguage),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold
@@ -168,12 +190,12 @@ fun ExpensesScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Ausgabe durchsuchen...") },
+                    placeholder = { Text(AppStrings.searchPlaceholder(currentLanguage)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Löschen")
+                                Icon(Icons.Default.Clear, contentDescription = AppStrings.delete(currentLanguage))
                             }
                         }
                     },
@@ -183,7 +205,7 @@ fun ExpensesScreen(
                 )
             }
 
-            // Quick-Add Horizontal Row (1-Tap Bookings with customizable amount)
+            // Quick-Add Horizontal Row with Recurring Button
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
                 Row(
                     modifier = Modifier
@@ -193,16 +215,37 @@ fun ExpensesScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "⚡ Schnellbuchung",
+                        text = AppStrings.quickAdd(currentLanguage),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = "Klick zum Anpassen & Buchen",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+
+                    // Recurring Expenses Management Button
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        modifier = Modifier.clickable { showRecurringDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Autorenew,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${AppStrings.recurring(currentLanguage)} (${recurringExpenses.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
 
                 LazyRow(
@@ -256,7 +299,7 @@ fun ExpensesScreen(
                     FilterChip(
                         selected = timeFilter == filter,
                         onClick = { viewModel.setTimeFilter(filter) },
-                        label = { Text(filter.label) }
+                        label = { Text(filter.getLabel(currentLanguage)) }
                     )
                 }
             }
@@ -273,12 +316,13 @@ fun ExpensesScreen(
                     FilterChip(
                         selected = selectedCatId == null,
                         onClick = { viewModel.setCategoryFilter(null) },
-                        label = { Text("Alle Kategorien") }
+                        label = { Text(if (currentLanguage.isEnglish) "All Categories" else "Alle Kategorien") }
                     )
                 }
                 items(categories) { cat ->
+                    val displayName = AppStrings.categoryName(cat.id, cat.name, currentLanguage)
                     CategoryChip(
-                        category = cat,
+                        category = cat.copy(name = displayName),
                         isSelected = selectedCatId == cat.id,
                         onClick = {
                             viewModel.setCategoryFilter(if (selectedCatId == cat.id) null else cat.id)
@@ -398,7 +442,7 @@ fun ExpensesScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text(
-                                            text = cat.name,
+                                            text = AppStrings.categoryName(cat.id, cat.name, currentLanguage),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = cat.color,
                                             fontWeight = FontWeight.SemiBold
@@ -419,6 +463,21 @@ fun ExpensesScreen(
                                         }
 
                                         Spacer(modifier = Modifier.weight(1f))
+
+                                        // Auto-recorded indicator icon if notes indicate recurring/standing order
+                                        if (expense.notes.contains("Dauerauftrag") || expense.notes.contains("Automatisch") || expense.notes.contains("Auto")) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                                modifier = Modifier.padding(end = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "🔄",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
 
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
@@ -441,7 +500,7 @@ fun ExpensesScreen(
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
-                                                contentDescription = "Löschen",
+                                                contentDescription = AppStrings.delete(currentLanguage),
                                                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.65f),
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -484,10 +543,270 @@ fun ExpensesScreen(
                 )
                 Toast.makeText(
                     context,
-                    "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} € in $location)",
+                    if (currentLanguage.isEnglish) "✓ Booked: ${preset.title} (${currencyFormat.format(amount)} € in $location)"
+                    else "✓ Gebucht: ${preset.title} (${currencyFormat.format(amount)} € in $location)",
                     Toast.LENGTH_SHORT
                 ).show()
                 activeQuickAdd = null
+            }
+        )
+    }
+
+    // Recurring Expenses Management Dialog
+    if (showRecurringDialog) {
+        AlertDialog(
+            onDismissRequest = { showRecurringDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Autorenew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = AppStrings.recurringExpenses(currentLanguage),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = AppStrings.recurringSubtitle(currentLanguage),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (recurringExpenses.isEmpty()) {
+                        Text(
+                            text = AppStrings.noRecurringExpenses(currentLanguage),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    } else {
+                        recurringExpenses.forEach { rec ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = rec.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = "${currencyFormat.format(rec.amount)} €",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                        ) {
+                                            Text(
+                                                text = rec.interval.label(currentLanguage.isEnglish),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "• ${AppStrings.nextBooking(currentLanguage)}: ${dateFormat.format(Date(rec.nextDueDate))}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                viewModel.triggerRecurringExpenseNow(rec.id)
+                                                Toast.makeText(
+                                                    context,
+                                                    if (currentLanguage.isEnglish) "✓ Booked: ${rec.title}" else "✓ Gebucht: ${rec.title}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(AppStrings.bookNow(currentLanguage))
+                                        }
+
+                                        IconButton(
+                                            onClick = { viewModel.deleteRecurringExpense(rec.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = AppStrings.delete(currentLanguage),
+                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showRecurringDialog = false
+                    showAddRecurringDialog = true
+                }) {
+                    Text(AppStrings.addRecurringTitle(currentLanguage))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRecurringDialog = false }) {
+                    Text(AppStrings.understood(currentLanguage))
+                }
+            }
+        )
+    }
+
+    // Add Recurring Expense Dialog
+    if (showAddRecurringDialog) {
+        var recTitle by remember { mutableStateOf("") }
+        var recAmountText by remember { mutableStateOf("") }
+        var recCategory by remember { mutableStateOf(categories.firstOrNull()?.id ?: "cat_sonstiges") }
+        var recInterval by remember { mutableStateOf(RecurringInterval.MONTHLY) }
+        var recNotes by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddRecurringDialog = false },
+            title = {
+                Text(
+                    text = AppStrings.addRecurringTitle(currentLanguage),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    OutlinedTextField(
+                        value = recTitle,
+                        onValueChange = { recTitle = it },
+                        label = { Text(if (currentLanguage.isEnglish) "Title (e.g. Rent, Gym, Spotify)" else "Titel (z.B. Miete, Gym, Spotify)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = recAmountText,
+                        onValueChange = { recAmountText = it },
+                        label = { Text(if (currentLanguage.isEnglish) "Amount in €" else "Betrag in €") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = if (currentLanguage.isEnglish) "Interval:" else "Intervall:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        RecurringInterval.values().forEach { interval ->
+                            FilterChip(
+                                selected = recInterval == interval,
+                                onClick = { recInterval = interval },
+                                label = { Text(interval.label(currentLanguage.isEnglish)) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = recNotes,
+                        onValueChange = { recNotes = it },
+                        label = { Text(if (currentLanguage.isEnglish) "Notes (optional)" else "Notizen (optional)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amount = recAmountText.replace(",", ".").toDoubleOrNull()
+                        if (recTitle.isNotBlank() && amount != null && amount > 0.0) {
+                            viewModel.addRecurringExpense(
+                                title = recTitle.trim(),
+                                amount = amount,
+                                categoryId = recCategory,
+                                interval = recInterval,
+                                notes = recNotes.trim()
+                            )
+                            showAddRecurringDialog = false
+                            Toast.makeText(
+                                context,
+                                if (currentLanguage.isEnglish) "✓ Recurring expense saved!" else "✓ Dauerauftrag gespeichert!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ) {
+                    Text(AppStrings.save(currentLanguage))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddRecurringDialog = false }) {
+                    Text(AppStrings.cancel(currentLanguage))
+                }
             }
         )
     }

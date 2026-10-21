@@ -21,9 +21,12 @@ import com.example.reisekostentracker.data.ExpenseRepository
 import com.example.reisekostentracker.data.GeoPlace
 import com.example.reisekostentracker.data.GeoPlaceLibrary
 import com.example.reisekostentracker.data.WorldBankApiService
+import com.example.reisekostentracker.model.AppLanguage
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
 import com.example.reisekostentracker.model.ExpenseStatistics
+import com.example.reisekostentracker.model.RecurringExpense
+import com.example.reisekostentracker.model.RecurringInterval
 import com.example.reisekostentracker.model.Trip
 import com.example.reisekostentracker.ui.components.ChartMetricScope
 import kotlinx.coroutines.Dispatchers
@@ -37,12 +40,15 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 
-enum class TimeFilter(val label: String) {
-    ALL("Gesamt"),
-    THIS_YEAR("Dieses Jahr"),
-    THIS_MONTH("Dieser Monat"),
-    THIS_WEEK("Diese Woche"),
-    TODAY("Heute")
+enum class TimeFilter(val labelDe: String, val labelEn: String) {
+    ALL("Gesamt", "All"),
+    THIS_YEAR("Dieses Jahr", "This Year"),
+    THIS_MONTH("Dieser Monat", "This Month"),
+    THIS_WEEK("Diese Woche", "This Week"),
+    TODAY("Heute", "Today");
+
+    val label: String get() = labelDe
+    fun getLabel(lang: AppLanguage): String = if (lang.isEnglish) labelEn else labelDe
 }
 
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,8 +56,26 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     private val prefs = application.getSharedPreferences("rk_prefs", Context.MODE_PRIVATE)
 
     val expenses: StateFlow<List<Expense>> = repository.expenses
+    val recurringExpenses: StateFlow<List<RecurringExpense>> = repository.recurringExpenses
     val categories: StateFlow<List<ExpenseCategory>> = repository.categories
     val trips: StateFlow<List<Trip>> = repository.trips
+
+    // Language state (persisted across restarts, supports DE and EN with British flag toggle)
+    private val _currentLanguage = MutableStateFlow(
+        AppLanguage.fromCode(prefs.getString("app_language", "de"))
+    )
+    val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
+
+    fun toggleLanguage() {
+        val next = _currentLanguage.value.toggle()
+        _currentLanguage.value = next
+        prefs.edit().putString("app_language", next.code).apply()
+    }
+
+    fun setLanguage(language: AppLanguage) {
+        _currentLanguage.value = language
+        prefs.edit().putString("app_language", language.code).apply()
+    }
 
     // World Bank API & Android AICore Client Services
     val worldBankService = WorldBankApiService()
@@ -434,7 +458,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         latitude: Double? = null,
         longitude: Double? = null,
         locationName: String? = null,
-        feelingEmoji: String? = null
+        feelingEmoji: String? = null,
+        isRecurring: Boolean = false,
+        recurringInterval: RecurringInterval = RecurringInterval.MONTHLY
     ) {
         viewModelScope.launch {
             val app = getApplication<Application>()
@@ -482,9 +508,82 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                     locationName = resolved.name,
                     feelingEmoji = finalEmoji
                 )
+
+                // If marked as recurring, also register a RecurringExpense rule
+                if (isRecurring) {
+                    val cal = Calendar.getInstance().apply { timeInMillis = date }
+                    when (recurringInterval) {
+                        RecurringInterval.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
+                        RecurringInterval.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        RecurringInterval.MONTHLY -> cal.add(Calendar.MONTH, 1)
+                        RecurringInterval.YEARLY -> cal.add(Calendar.YEAR, 1)
+                    }
+                    val nextDue = cal.timeInMillis
+
+                    repository.addRecurringExpense(
+                        RecurringExpense(
+                            id = "rec_" + java.util.UUID.randomUUID().toString().take(8),
+                            title = title,
+                            amount = amount,
+                            currency = currency,
+                            categoryId = categoryId,
+                            interval = recurringInterval,
+                            startDate = date,
+                            lastExecutionDate = date,
+                            nextDueDate = nextDue,
+                            paymentMethod = paymentMethod,
+                            locationName = resolved.name,
+                            notes = notes,
+                            isActive = true
+                        )
+                    )
+                }
             }
             closeExpenseDialog()
         }
+    }
+
+    fun addRecurringExpense(
+        title: String,
+        amount: Double,
+        categoryId: String,
+        interval: RecurringInterval,
+        paymentMethod: String = "Dauerauftrag",
+        locationName: String? = null,
+        notes: String = ""
+    ) {
+        val now = System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply { timeInMillis = now }
+        when (interval) {
+            RecurringInterval.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
+            RecurringInterval.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+            RecurringInterval.MONTHLY -> cal.add(Calendar.MONTH, 1)
+            RecurringInterval.YEARLY -> cal.add(Calendar.YEAR, 1)
+        }
+        val rec = RecurringExpense(
+            id = "rec_" + java.util.UUID.randomUUID().toString().take(8),
+            title = title,
+            amount = amount,
+            currency = "EUR",
+            categoryId = categoryId,
+            interval = interval,
+            startDate = now,
+            lastExecutionDate = now,
+            nextDueDate = cal.timeInMillis,
+            paymentMethod = paymentMethod,
+            locationName = locationName,
+            notes = notes,
+            isActive = true
+        )
+        repository.addRecurringExpense(rec)
+    }
+
+    fun deleteRecurringExpense(id: String) {
+        repository.deleteRecurringExpense(id)
+    }
+
+    fun triggerRecurringExpenseNow(id: String) {
+        repository.triggerRecurringNow(id)
     }
 
     fun deleteExpense(id: String) {
