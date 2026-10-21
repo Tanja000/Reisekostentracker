@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.reisekostentracker"
+    namespace = "de.saveiq.app"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.reisekostentracker"
+        applicationId = "de.saveiq.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -90,29 +90,68 @@ dependencies {
   implementation("org.maplibre.gl:android-sdk:11.8.2")
 }
 
-abstract class CopyApkTask : DefaultTask() {
-    @get:InputDirectory
+abstract class CopySaveIqArtifactsTask : DefaultTask() {
+    init {
+        doNotTrackState("Copies final artifacts directly to root project directory")
+    }
+
+    @get:Internal
     abstract val debugDir: DirectoryProperty
 
+    @get:Internal
+    abstract val bundleDir: DirectoryProperty
+
+    @get:Internal
+    abstract val rootOutputDir: DirectoryProperty
+
     @TaskAction
-    fun copyApk() {
-        val src = debugDir.file("app-debug.apk").get().asFile
-        val targetSaveIQ = debugDir.file("SaveIQ.apk").get().asFile
-        val targetLegacy = debugDir.file("TrackMyCent.apk").get().asFile
-        if (src.exists()) {
-            src.copyTo(targetSaveIQ, overwrite = true)
-            src.copyTo(targetLegacy, overwrite = true)
-            println("Created debug APK: ${targetSaveIQ.absolutePath}")
+    fun copyArtifacts() {
+        val rootDirFile = rootOutputDir.get().asFile
+        val debugDirFile = debugDir.get().asFile
+        val bundleDirFile = bundleDir.get().asFile
+
+        val srcApk = File(debugDirFile, "app-debug.apk")
+        if (srcApk.exists()) {
+            val rootApk = File(rootDirFile, "SaveIQ.apk")
+            srcApk.copyTo(rootApk, overwrite = true)
+            srcApk.copyTo(File(debugDirFile, "SaveIQ.apk"), overwrite = true)
+            println("Created APK in root: ${rootApk.absolutePath}")
+        }
+
+        val bundleFile = File(bundleDirFile, "app-debug.aab")
+        if (bundleFile.exists()) {
+            val rootAab = File(rootDirFile, "SaveIQ.aab")
+            val rootApp = File(rootDirFile, "SaveIQ.app")
+            bundleFile.copyTo(rootAab, overwrite = true)
+            bundleFile.copyTo(rootApp, overwrite = true)
+            println("Created Google Play Bundle in root: ${rootAab.absolutePath} and ${rootApp.absolutePath}")
+        }
+
+        // Delete legacy TrackMyCent.apk if exists
+        val legacyRoot = File(rootDirFile, "TrackMyCent.apk")
+        if (legacyRoot.exists()) {
+            legacyRoot.delete()
+        }
+        val legacyInApk = File(debugDirFile, "TrackMyCent.apk")
+        if (legacyInApk.exists()) {
+            legacyInApk.delete()
         }
     }
 }
 
-tasks.register<CopyApkTask>("copySaveIqApk") {
+tasks.register<CopySaveIqArtifactsTask>("copySaveIqArtifacts") {
     debugDir.set(layout.buildDirectory.dir("outputs/apk/debug"))
+    bundleDir.set(layout.buildDirectory.dir("outputs/bundle/debug"))
+    rootOutputDir.set(project.rootDir)
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
-    finalizedBy("copySaveIqApk")
+    dependsOn("bundleDebug")
+    finalizedBy("copySaveIqArtifacts")
+}
+
+tasks.matching { it.name == "bundleDebug" }.configureEach {
+    finalizedBy("copySaveIqArtifacts")
 }
 
 
