@@ -20,4 +20,5 @@ ios/outputs/
 ios/Payload/
 *.apk
 *.ipa
+.~lock.*
 

@@ -562,6 +562,61 @@
       transform: scale(1.15);
       z-index: 10;
     }
+    .price-map-pin {
+      position: relative;
+      padding: 4px 9px;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.28);
+      border: 2px solid #fff;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .price-map-pin:hover {
+      transform: scale(1.14);
+      z-index: 25 !important;
+    }
+    .price-map-pin::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--pin-bg, #2563EB);
+    }
+    .price-map-pin.tier-cheap {
+      background: #10B981;
+      --pin-bg: #10B981;
+      border-color: #A7F3D0;
+    }
+    .price-map-pin.tier-moderate {
+      background: #F59E0B;
+      --pin-bg: #F59E0B;
+      border-color: #FDE68A;
+    }
+    .price-map-pin.tier-expensive {
+      background: #F97316;
+      --pin-bg: #F97316;
+      border-color: #FED7AA;
+    }
+    .price-map-pin.tier-luxury {
+      background: #DC2626;
+      --pin-bg: #DC2626;
+      border-color: #FEF08A;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.55);
+      font-weight: 900;
+    }
 
     /* Modals & Dropdown */
     .modal-overlay {
@@ -792,7 +847,7 @@
           <span class="material-symbols-rounded" style="font-size:28px">add</span>
         </button>
 
-        <!-- 5-Tab Bottom Navigation -->
+        <!-- 6-Tab Bottom Navigation -->
         <div class="bottom-nav">
           <button class="nav-item active" onclick="switchTab(0)">
             <span class="material-symbols-rounded">payments</span>
@@ -803,14 +858,18 @@
             <span id="navStats">Statistik</span>
           </button>
           <button class="nav-item" onclick="switchTab(2)">
+            <span class="material-symbols-rounded">auto_awesome</span>
+            <span id="navSavings">Spar-KI</span>
+          </button>
+          <button class="nav-item" onclick="switchTab(3)">
             <span class="material-symbols-rounded">map</span>
             <span id="navMap">Karte</span>
           </button>
-          <button class="nav-item" onclick="switchTab(3)">
+          <button class="nav-item" onclick="switchTab(4)">
             <span class="material-symbols-rounded">category</span>
             <span id="navCategories">Kategorien</span>
           </button>
-          <button class="nav-item" onclick="switchTab(4)">
+          <button class="nav-item" onclick="switchTab(5)">
             <span class="material-symbols-rounded">account_balance_wallet</span>
             <span id="navBudgets">Budgets</span>
           </button>
@@ -993,6 +1052,7 @@
         appTitle: "TrackMyCent",
         expensesTab: "Ausgaben",
         statsTab: "Statistik",
+        savingsTab: "Spar-KI",
         mapTab: "Karte",
         categoriesTab: "Kategorien",
         budgetsTab: "Budgets",
@@ -1051,6 +1111,7 @@
         appTitle: "TrackMyCent",
         expensesTab: "Expenses",
         statsTab: "Statistics",
+        savingsTab: "Savings AI",
         mapTab: "Map",
         categoriesTab: "Categories",
         budgetsTab: "Budgets",
@@ -1158,11 +1219,13 @@
       if (flagEN) flagEN.classList.toggle("active", !isDe);
       const navExp = document.getElementById("navExpenses");
       const navStats = document.getElementById("navStats");
+      const navSavings = document.getElementById("navSavings");
       const navMap = document.getElementById("navMap");
       const navCats = document.getElementById("navCategories");
       const navBudgets = document.getElementById("navBudgets");
       if (navExp) navExp.innerText = t("expensesTab");
       if (navStats) navStats.innerText = t("statsTab");
+      if (navSavings) navSavings.innerText = t("savingsTab");
       if (navMap) navMap.innerText = t("mapTab");
       if (navCats) navCats.innerText = t("categoriesTab");
       if (navBudgets) navBudgets.innerText = t("budgetsTab");
@@ -1316,13 +1379,16 @@
       if (modified) saveState();
     }
 
-    const hasInitializedExpenses = localStorage.getItem("tmc_has_seeded");
-    if (!hasInitializedExpenses) {
+    try {
+      const storedExpenses = JSON.parse(localStorage.getItem("tmc_expenses"));
+      if (Array.isArray(storedExpenses) && storedExpenses.length > 0) {
+        expenses = storedExpenses;
+        ensureCoordinatesForExpenses();
+      } else {
+        seedInitialData();
+      }
+    } catch (e) {
       seedInitialData();
-      localStorage.setItem("tmc_has_seeded", "true");
-    } else {
-      expenses = JSON.parse(localStorage.getItem("tmc_expenses")) || [];
-      ensureCoordinatesForExpenses();
     }
 
     if (gpsConsent === null) {
@@ -1333,8 +1399,12 @@
     }
 
     function saveState() {
-      localStorage.setItem("tmc_categories", JSON.stringify(categories));
-      localStorage.setItem("tmc_expenses", JSON.stringify(expenses));
+      if (Array.isArray(categories) && categories.length > 0) {
+        localStorage.setItem("tmc_categories", JSON.stringify(categories));
+      }
+      if (Array.isArray(expenses)) {
+        localStorage.setItem("tmc_expenses", JSON.stringify(expenses));
+      }
       localStorage.setItem("tmc_monthly_budget", monthlyBudgetGoal);
     }
 
@@ -1447,8 +1517,8 @@
       });
       const fab = document.getElementById("fabBtn");
       if (fab) {
-        fab.style.display = (idx === 0 || idx === 3) ? "flex" : "none";
-        if (idx === 3) {
+        fab.style.display = (idx === 0 || idx === 4) ? "flex" : "none";
+        if (idx === 4) {
           fab.onclick = openAddCategoryModal;
           fab.title = t("newCat");
         } else {
@@ -1466,9 +1536,10 @@
       if (!container) return;
       if (currentTab === 0) renderExpensesScreen(container);
       else if (currentTab === 1) renderStatisticsScreen(container);
-      else if (currentTab === 2) renderMapScreen(container);
-      else if (currentTab === 3) renderCategoriesScreen(container);
-      else if (currentTab === 4) renderBudgetsScreen(container);
+      else if (currentTab === 2) renderSavingsAiScreen(container);
+      else if (currentTab === 3) renderMapScreen(container);
+      else if (currentTab === 4) renderCategoriesScreen(container);
+      else if (currentTab === 5) renderBudgetsScreen(container);
     }
 
     // --- TAB 0: EXPENSES ---
@@ -1655,91 +1726,19 @@
           </div>
         </div>
 
-        <!-- FEATURE 1: ANDROID AICORE FRUSTKAUF-ANALYSE -->
-        <div class="card" style="margin-bottom:12px; border:1px solid rgba(37,99,235,0.25);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">psychology</span>
+        <!-- TEASER BANNER TO DEDICATED SPAR-KI TAB -->
+        <div class="card" style="margin-bottom:12px; background:linear-gradient(135deg, rgba(37,99,235,0.12), rgba(168,85,247,0.15)); border:1px solid rgba(37,99,235,0.3); cursor:pointer;" onclick="switchTab(2)">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:10px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <span class="material-symbols-rounded" style="font-size:20px;">auto_awesome</span>
+              </div>
               <div>
-                <div style="font-size:13.5px; font-weight:800;">Android AICore Analyse</div>
-                <div style="font-size:10.5px; color:var(--outline);">Frustkäufe & Einsparpotenziale</div>
+                <div style="font-size:13px; font-weight:800; color:var(--on-surface);">Spar-KI & Weltbank Analysen</div>
+                <div style="font-size:11px; color:var(--outline);">Frustkauf-Vermeidung & Zinseszins-Rechner im eigenen Tab &rarr;</div>
               </div>
             </div>
-            <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
-              ⚡ AICore on-device
-            </span>
-          </div>
-          ${(() => {
-            const frustList = expenses.filter(e => e.feelingEmoji && ['⚡', '🥱', '💸', '🤦', '😡'].includes(e.feelingEmoji));
-            const totalFrust = frustList.reduce((s, e) => s + Number(e.amount), 0);
-            const annualSavings = totalFrust * 12;
-            if (frustList.length > 0) {
-              return `
-                <div style="background:rgba(239,68,68,0.1); border-radius:12px; padding:10px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <div style="font-size:10.5px; color:#ef4444; font-weight:700;">Frust- & Impulskosten</div>
-                    <div style="font-size:18px; font-weight:900; color:#ef4444;">${formatCurrency(totalFrust)}</div>
-                    <div style="font-size:10px; color:var(--outline);">${frustList.length} unüberlegte Käufe</div>
-                  </div>
-                  <div style="text-align:right;">
-                    <div style="font-size:10px; color:var(--outline);">Jahres-Sparpotenzial</div>
-                    <div style="font-size:15px; font-weight:800; color:#16a34a;">≈ ${formatCurrency(annualSavings)}</div>
-                  </div>
-                </div>
-                <div style="font-size:11.5px; font-weight:700; color:var(--on-surface); margin-bottom:4px;">
-                  💡 AICore Vorbeugungs-Strategien:
-                </div>
-                <div style="font-size:11px; color:var(--on-surface-variant); line-height:1.4;">
-                  • <b>48-Stunden-Wartezeit:</b> Spontankäufe ab 20 € zunächst zwei Tage auf die Wunschliste setzen.<br>
-                  • <b>Ersatz-Ritual bei Frust & Langeweile:</b> Spaziergang oder Tee statt Scrollen im Onlineshop.<br>
-                  • <b>Festes Belohnungs-Budget:</b> Maximal 30 € pro Monat bar für Frustkäufe reservieren.
-                </div>
-              `;
-            } else {
-              return `
-                <div style="background:rgba(22,163,74,0.1); border-radius:10px; padding:10px 12px; font-size:11.5px; color:#16a34a; font-weight:600;">
-                  ✓ Bisher keine Frust- oder Impulskäufe erfasst! Deine Konsumentscheidungen sind bewusst und reflektiert.
-                </div>
-              `;
-            }
-          })()}
-        </div>
-
-        <!-- FEATURE 2: WELTBANK & ZINSESZINS OPPORTUNITÄTSKOSTEN -->
-        <div class="card" style="margin-bottom:12px; border:1px solid rgba(2,132,199,0.25);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:#0284c7; font-size:22px;">trending_up</span>
-              <div>
-                <div style="font-size:13.5px; font-weight:800;">Zinseszins & Inflation</div>
-                <div style="font-size:10.5px; color:var(--outline);">Weltbank API & Opportunitätskosten</div>
-              </div>
-            </div>
-            <span style="background:rgba(2,132,199,0.12); color:#0284c7; font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
-              DEU 2,25 % Inf.
-            </span>
-          </div>
-          <div style="font-size:11.5px; color:var(--on-surface-variant); margin-bottom:10px;">
-            Was wäre, wenn du Konsum- und Spontanausgaben stattdessen mit 7 % p.a. angelegt hättest?
-          </div>
-          <!-- Creative AI Quote Card -->
-          <div style="background:var(--primary-container); border-radius:12px; padding:10px 12px; margin-bottom:10px; display:flex; gap:8px; align-items:flex-start;">
-            <span class="material-symbols-rounded" style="color:var(--primary); font-size:18px; flex-shrink:0; margin-top:1px;">lightbulb</span>
-            <div style="font-size:11.5px; font-weight:600; font-style:italic; color:var(--on-primary-container);">
-              „Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“
-            </div>
-          </div>
-          <div style="background:var(--surface-variant); border-radius:10px; padding:10px 12px; font-size:11px; line-height:1.4;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span>35,00 € Spontankauf angelegt (7 % p.a.):</span>
-              <b style="color:#16a34a;">in 30 Jahren ≈ 266,43 €</b>
-            </div>
-            <div style="color:var(--outline); font-size:10px;">
-              Inflationsbereinigte Kaufkraft: ≈ 135,44 € (bei 2,25 % Weltbank-Inflation über 30 Jahre).
-            </div>
-          </div>
-          <div style="font-size:9.5px; color:var(--outline); margin-top:8px;">
-            💡 Datenbasis: Weltbank Open Data API (DEU FP.CPI.TOTL.ZG) • 7 % p.a. historische ETF-Rendite.
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">chevron_right</span>
           </div>
         </div>
         <div class="card" style="margin-bottom:12px;">
@@ -1868,33 +1867,251 @@
       container.innerHTML = html;
     }
 
-    // --- TAB 2: MAP ---
+    // --- TAB 2: SPAR-KI (FRUSTKAUF & WELTBANK SPARDETAILS) ---
+    function renderSavingsAiScreen(container) {
+      const frustList = expenses.filter(e => e.feelingEmoji && ['⚡', '🥱', '💸', '🤦', '😡'].includes(e.feelingEmoji));
+      const totalFrust = frustList.reduce((s, e) => s + Number(e.amount), 0);
+      const annualSavings = totalFrust * 12;
+      const totalExp = expenses.reduce((s, e) => s + Number(e.amount), 0);
+      const frustPct = totalExp > 0 ? (totalFrust / totalExp) * 100 : 0;
+
+      const aiQuotes = [
+        "„Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“",
+        "„Hättest du dieses Shopping-Wochenende in einen weltweiten Sparplan investiert, könntest du dir in 15 Jahren ein Sabbatical finanzieren.“",
+        "„Ein einziger Frustkauf von 50 € wächst bei 7 % Marktrendite auf 380 € an – der teuerste Moment deines Monats.“",
+        "„10 Minuten Impulskauf bedeuten oft 3 Tage Mehrarbeit für die Altersvorsorge.“"
+      ];
+      const selectedQuote = aiQuotes[Math.floor(Math.random() * aiQuotes.length)];
+
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div>
+            <div style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:6px;">
+              <span>Spar-KI & Sparfuchs</span>
+              <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px;">AICore</span>
+            </div>
+            <div style="font-size:12px; color:var(--outline);">Android AICore on-device Intelligenz & Weltbank Zinseszins Rechner</div>
+          </div>
+        </div>
+
+        <!-- KPI SUMMARY CARDS -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:12px 0;">
+          <div class="card" style="margin-bottom:0; padding:12px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);">
+            <div style="font-size:10.5px; font-weight:700; color:#ef4444; text-transform:uppercase;">Frust- & Impulskosten</div>
+            <div style="font-size:20px; font-weight:900; color:#ef4444; margin-top:2px;">${formatCurrency(totalFrust)}</div>
+            <div style="font-size:10px; color:var(--outline); margin-top:2px;">${frustList.length} unüberlegte Käufe (${frustPct.toFixed(1)}%)</div>
+          </div>
+          <div class="card" style="margin-bottom:0; padding:12px 14px; background:rgba(22,163,74,0.08); border:1px solid rgba(22,163,74,0.25);">
+            <div style="font-size:10.5px; font-weight:700; color:#16a34a; text-transform:uppercase;">Jahres-Sparpotenzial</div>
+            <div style="font-size:20px; font-weight:900; color:#16a34a; margin-top:2px;">≈ ${formatCurrency(annualSavings)}</div>
+            <div style="font-size:10px; color:var(--outline); margin-top:2px;">Bei Vermeidung von Frustkäufen</div>
+          </div>
+        </div>
+
+        <!-- ANDROID AICORE FRUSTKAUF PREVENTION CARD -->
+        <div class="card" style="margin-bottom:12px; border:1px solid rgba(37,99,235,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">psychology</span>
+              <div>
+                <div style="font-size:13.5px; font-weight:800;">Android AICore Frustkauf-Analyse</div>
+                <div style="font-size:10.5px; color:var(--outline);">On-Device LLM & Psychologie</div>
+              </div>
+            </div>
+            <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
+              ⚡ AICore on-device
+            </span>
+          </div>
+
+          ${frustList.length > 0 ? `
+            <div style="font-size:11.5px; font-weight:700; color:var(--on-surface); margin-bottom:6px;">
+              💡 Personalisierte AICore Strategien:
+            </div>
+            <div style="font-size:11px; color:var(--on-surface-variant); line-height:1.5; background:var(--surface-variant); padding:10px 12px; border-radius:12px; margin-bottom:10px;">
+              • <b>48-Stunden-Wartezeit:</b> Spontankäufe ab 20 € zunächst zwei Tage auf die Wunschliste setzen.<br>
+              • <b>Ersatz-Ritual bei Frust & Langeweile:</b> Spaziergang an der frischen Luft oder Tee statt Onlineshop.<br>
+              • <b>Festes Belohnungs-Budget:</b> Maximal 30 € pro Monat bar für emotionale Spontankäufe reservieren.
+            </div>
+          ` : `
+            <div style="background:rgba(22,163,74,0.1); border-radius:10px; padding:10px 12px; font-size:11.5px; color:#16a34a; font-weight:600; margin-bottom:8px;">
+              ✓ Bisher keine Frust- oder Impulskäufe erfasst! Deine Konsumentscheidungen sind bewusst und vorbildlich.
+            </div>
+          `}
+        </div>
+
+        <!-- WELTBANK & ZINSESZINS OPPORTUNITÄTSKOSTEN CARD -->
+        <div class="card" style="margin-bottom:12px; border:1px solid rgba(2,132,199,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-rounded" style="color:#0284c7; font-size:22px;">trending_up</span>
+              <div>
+                <div style="font-size:13.5px; font-weight:800;">Zinseszins & Inflation</div>
+                <div style="font-size:10.5px; color:var(--outline);">Weltbank API (DEU FP.CPI.TOTL.ZG)</div>
+              </div>
+            </div>
+            <span style="background:rgba(2,132,199,0.12); color:#0284c7; font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
+              DEU 2,25 % Inf.
+            </span>
+          </div>
+
+          <!-- Dynamic Quote -->
+          <div style="background:var(--primary-container); border-radius:12px; padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;">
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:20px; flex-shrink:0;">lightbulb</span>
+            <div style="font-size:12px; font-weight:700; font-style:italic; color:var(--on-primary-container); line-height:1.4;">
+              ${selectedQuote}
+            </div>
+          </div>
+
+          <div style="background:var(--surface-variant); border-radius:12px; padding:12px; font-size:11.5px; line-height:1.45;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>50,00 € Spontankauf angelegt (7 % p.a.):</span>
+              <b style="color:#16a34a;">in 30 Jahren ≈ 380,61 €</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Monatlich 50 € gespart & investiert:</span>
+              <b style="color:#16a34a;">in 30 Jahren ≈ 60.998 €</b>
+            </div>
+            <div style="color:var(--outline); font-size:10px; margin-top:4px;">
+              Inflationsbereinigte Kaufkraft nach 30 Jahren: ≈ 31.280 € (bei 2,25 % Weltbank-Inflation).
+            </div>
+          </div>
+          <div style="font-size:9.5px; color:var(--outline); margin-top:8px;">
+            💡 Datenbasis: Weltbank Open Data API • 7 % p.a. historische ETF-Rendite (MSCI World).
+          </div>
+        </div>
+
+        <!-- LIST OF RECORDED FRUSTKÄUFE -->
+        <div style="font-size:13px; font-weight:800; color:var(--outline); margin:14px 0 8px;">
+          Erfasste Frust- & Impulskäufe (${frustList.length})
+        </div>
+      `;
+
+      if (frustList.length === 0) {
+        html += `
+          <div class="card" style="text-align:center; padding:24px 16px; color:var(--outline);">
+            <span class="material-symbols-rounded" style="font-size:36px; color:#16a34a; margin-bottom:6px;">sentiment_satisfied</span>
+            <div style="font-size:13px; font-weight:700; color:var(--on-surface);">Keine Frustkäufe vorhanden</div>
+            <div style="font-size:11px; margin-top:2px;">Wähle beim Eintragen von Ausgaben ein Emoji, um deine Emotionen festzuhalten.</div>
+          </div>
+        `;
+      } else {
+        html += frustList.map(exp => {
+          const cat = getCategory(exp.categoryId);
+          return `
+            <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;">
+              <div style="font-size:24px; width:40px; height:40px; border-radius:12px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                ${exp.feelingEmoji || '🤦'}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:13.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:14px; font-weight:900; color:#ef4444; white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                    <button class="icon-btn" style="width:24px; height:24px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${exp.id}')" title="Löschen">
+                      <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
+                    </button>
+                  </div>
+                </div>
+                <div style="font-size:11px; color:var(--outline); margin-top:2px;">
+                  <span style="color:${cat.color}; font-weight:700;">${cat.name}</span> \u2022 ${formatDate(exp.date)} ${exp.location ? '\u2022 📍 ' + exp.location : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    // --- TAB 3: MAP ---
     let currentMapInstance = null;
+    let mapPriceFilter = 'ALL';
+
     function renderMapScreen(container) {
       ensureCoordinatesForExpenses();
-      const expensesWithGps = expenses.filter(e => e.lat && e.lng);
+      const allExpensesWithGps = expenses.filter(e => e.lat && e.lng);
+
+      let displayedGpsExpenses = allExpensesWithGps;
+      if (mapPriceFilter === 'EXPENSIVE') {
+        displayedGpsExpenses = allExpensesWithGps.filter(e => Number(e.amount) >= 50);
+      } else if (mapPriceFilter === 'CHEAP') {
+        displayedGpsExpenses = allExpensesWithGps.filter(e => Number(e.amount) < 15);
+      }
+
+      // Group by location for Hotspot Ranking
+      const hotspotMap = {};
+      allExpensesWithGps.forEach(e => {
+        const loc = (e.location && e.location.trim()) || "Unbekannter Ort";
+        if (!hotspotMap[loc]) hotspotMap[loc] = { name: loc, total: 0, count: 0, sample: e };
+        hotspotMap[loc].total += Number(e.amount);
+        hotspotMap[loc].count += 1;
+      });
+      const hotspots = Object.values(hotspotMap).sort((a,b) => b.total - a.total).slice(0, 5);
+
       let html = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <div>
             <div style="font-size:18px; font-weight:800;">${t('mapTitle')}</div>
-            <div style="font-size:12px; color:var(--outline);">${t('mapSub')}</div>
+            <div style="font-size:12px; color:var(--outline);">Farbcodierte Preis-Pins zeigen sofort teure Hotspots & günstige Orte.</div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <button class="btn btn-secondary" style="padding:6px 10px; font-size:11px; border-radius:10px; display:flex; align-items:center; gap:4px;" onclick="randomizeCoordinates()">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; border-radius:10px; display:flex; align-items:center; gap:4px;" onclick="randomizeCoordinates()">
               <span class="material-symbols-rounded" style="font-size:14px;">shuffle</span>
               <span>${t('randomGps')}</span>
             </button>
-            <div style="background:var(--primary-container); color:var(--on-primary-container); padding:4px 10px; border-radius:12px; font-size:11px; font-weight:800;">
-              ${expensesWithGps.length} ${t('placesCount')}
+            <div style="background:var(--primary-container); color:var(--on-primary-container); padding:4px 9px; border-radius:12px; font-size:11px; font-weight:800;">
+              ${displayedGpsExpenses.length} Marker
             </div>
           </div>
         </div>
-        <div id="mapContainer"></div>
-        <div style="font-size:13px; font-weight:700; color:var(--outline); margin-bottom:10px;">${t('rankingTitle')}</div>
+
+        <!-- 4-TIER PRICE COLOR LEGEND -->
+        <div style="display:flex; align-items:center; gap:10px; overflow-x:auto; padding:6px 0; margin-bottom:6px; font-size:10.5px; font-weight:700; white-space:nowrap;">
+          <div style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:50%; background:#10B981; display:inline-block;"></span> < 15 € (Günstig)</div>
+          <div style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:50%; background:#F59E0B; display:inline-block;"></span> 15-50 € (Moderat)</div>
+          <div style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:50%; background:#F97316; display:inline-block;"></span> 50-100 € (Gehoben)</div>
+          <div style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:50%; background:#DC2626; display:inline-block;"></span> > 100 € 🔥 (Luxus)</div>
+        </div>
+
+        <!-- FILTER CHIPS -->
+        <div class="filter-btn-group" style="margin-bottom:10px;">
+          <button class="chip ${mapPriceFilter === 'ALL' ? 'active' : ''}" onclick="mapPriceFilter = 'ALL'; renderMapScreen(document.getElementById('mainContent'));">Alle (${allExpensesWithGps.length})</button>
+          <button class="chip ${mapPriceFilter === 'EXPENSIVE' ? 'active' : ''}" onclick="mapPriceFilter = 'EXPENSIVE'; renderMapScreen(document.getElementById('mainContent'));" style="${mapPriceFilter === 'EXPENSIVE' ? 'background:#FEE2E2; color:#B91C1C; border-color:#FCA5A5;' : ''}">🔥 Teuer (> 50 €)</button>
+          <button class="chip ${mapPriceFilter === 'CHEAP' ? 'active' : ''}" onclick="mapPriceFilter = 'CHEAP'; renderMapScreen(document.getElementById('mainContent'));" style="${mapPriceFilter === 'CHEAP' ? 'background:#D1FAE5; color:#047857; border-color:#6EE7B7;' : ''}">🟢 Günstig (< 15 €)</button>
+        </div>
+
+        <!-- MAP CONTAINER -->
+        <div id="mapContainer" style="height:300px; border-radius:20px; overflow:hidden; margin-bottom:12px; box-shadow:0 4px 16px rgba(0,0,0,0.12);"></div>
+
+        <!-- TOP HOTSPOTS CAROUSEL -->
+        ${hotspots.length > 0 ? `
+          <div style="font-size:13px; font-weight:800; color:var(--on-surface); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🏆 Teuerste Ausgaben-Hotspots</span>
+            <span style="font-size:10.5px; color:var(--outline); font-weight:600;">Nach Ort</span>
+          </div>
+          <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; margin-bottom:6px;">
+            ${hotspots.map((hs, i) => `
+              <div class="card" style="margin-bottom:0; padding:8px 12px; flex-shrink:0; cursor:pointer; min-width:130px; ${hs.total > 200 ? 'background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25);' : ''}" onclick="focusMapLocation(${hs.sample.lat}, ${hs.sample.lng})">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="material-symbols-rounded" style="font-size:16px; color:${hs.total > 200 ? '#dc2626' : 'var(--primary)'};">place</span>
+                  <div style="font-size:12px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${hs.name}</div>
+                </div>
+                <div style="font-size:14px; font-weight:900; color:${hs.total > 200 ? '#dc2626' : 'var(--primary)'}; margin-top:2px;">${formatCurrency(hs.total)}</div>
+                <div style="font-size:10px; color:var(--outline);">${hs.count} Ausgaben</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <div style="font-size:13px; font-weight:700; color:var(--outline); margin-bottom:8px;">${t('rankingTitle')}</div>
       `;
-      const sorted = expensesWithGps.slice().sort((a,b) => Number(b.amount) - Number(a.amount));
+
+      const sorted = displayedGpsExpenses.slice().sort((a,b) => Number(b.amount) - Number(a.amount));
       html += sorted.map(e => {
         const cat = getCategory(e.categoryId);
+        const amt = Number(e.amount);
+        const isExpensive = amt >= 100;
         return `
           <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer;" onclick="focusMapLocation(${e.lat}, ${e.lng})">
             <div class="stat-icon" style="width:40px; height:40px; border-radius:12px; background:${cat.color}20; color:${cat.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -1904,7 +2121,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${e.location || e.title}</span>
                 <div style="display:flex; align-items:center; gap:6px;">
-                  <span style="font-size:14.5px; font-weight:900; color:#ef4444; white-space:nowrap;">${formatCurrency(e.amount)}</span>
+                  <span style="font-size:14.5px; font-weight:900; color:${isExpensive ? '#dc2626' : (amt >= 50 ? '#ea580c' : (amt >= 15 ? '#d97706' : '#059669'))}; white-space:nowrap;">
+                    ${isExpensive ? '🔥 ' : ''}${formatCurrency(e.amount)}
+                  </span>
                   <button class="icon-btn" style="width:24px; height:24px; color:#ef4444;" onclick="event.stopPropagation(); deleteExpense('${e.id}')" title="Ausgabe löschen">
                     <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
                   </button>
@@ -1920,8 +2139,9 @@
           </div>
         `;
       }).join('');
+
       container.innerHTML = html;
-      setTimeout(() => initMapLibreMap(expensesWithGps), 50);
+      setTimeout(() => initMapLibreMap(displayedGpsExpenses), 50);
     }
 
     function initMapLibreMap(items) {
@@ -1940,27 +2160,39 @@
       currentMapInstance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
       currentMapInstance.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'OpenFreeMap &bull; MapLibre' }), 'bottom-right');
       const bounds = new maplibregl.LngLatBounds();
+
       items.forEach(exp => {
         const amt = Math.max(1, Number(exp.amount) || 1);
-        const size = Math.round(Math.min(56, Math.max(22, 20 + Math.sqrt(amt) * 2.2)));
         const cat = getCategory(exp.categoryId);
 
+        let tierClass = 'tier-cheap';
+        let badgeText = Math.round(amt) + ' €';
+        if (amt >= 100) {
+          tierClass = 'tier-luxury';
+          badgeText = '🔥 ' + Math.round(amt) + ' €';
+        } else if (amt >= 50) {
+          tierClass = 'tier-expensive';
+          badgeText = Math.round(amt) + ' €';
+        } else if (amt >= 15) {
+          tierClass = 'tier-moderate';
+          badgeText = Math.round(amt) + ' €';
+        }
+
         const el = document.createElement('div');
-        el.className = 'custom-maplibre-circle';
-        el.style.width = size + 'px';
-        el.style.height = size + 'px';
-        el.style.fontSize = Math.max(9, Math.min(12, Math.round(size * 0.35))) + 'px';
-        el.innerText = size >= 28 ? Math.round(amt) + '€' : '';
+        el.className = `price-map-pin ${tierClass}`;
+        el.innerHTML = badgeText;
 
         el.onclick = () => {
           focusMapLocation(exp.lat, exp.lng);
         };
 
-        const popup = new maplibregl.Popup({ offset: Math.round(size / 2) + 2, closeButton: false }).setHTML(`
+        const popup = new maplibregl.Popup({ offset: 16, closeButton: false }).setHTML(`
           <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:140px; padding:2px;">
             <b style="font-size:13px; display:block; margin-bottom:2px; color:var(--on-surface);">${exp.title}</b>
             <div style="font-size:11px; color:var(--outline); margin-bottom:4px;">\uD83D\uDCCD ${exp.location || 'Standort'}</div>
-            <div style="font-size:14.5px; font-weight:900; color:#ef4444;">${formatCurrency(exp.amount)}</div>
+            <div style="font-size:14.5px; font-weight:900; color:${amt >= 100 ? '#dc2626' : (amt >= 50 ? '#ea580c' : 'var(--primary)')};">
+              ${amt >= 100 ? '🔥 ' : ''}${formatCurrency(exp.amount)}
+            </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
               <span style="font-size:10px; color:var(--outline);">\uD83D\uDCC5 ${formatDate(exp.date)}</span>
               <button class="icon-btn" style="width:22px; height:22px; color:#ef4444;" onclick="deleteExpense('${exp.id}')" title="Löschen">
@@ -1972,6 +2204,7 @@
         new maplibregl.Marker({ element: el }).setLngLat([exp.lng, exp.lat]).setPopup(popup).addTo(currentMapInstance);
         bounds.extend([exp.lng, exp.lat]);
       });
+
       if (items.length > 0) {
         currentMapInstance.on('load', () => {
           try { if (!bounds.isEmpty()) currentMapInstance.fitBounds(bounds, { padding: 35, maxZoom: 12, duration: 600 }); } catch(e) {}
@@ -2499,6 +2732,10 @@
         id: "cat_" + Date.now(), name, nameDe: name, nameEn: name,
         color: selectedColorInCatModal, icon: selectedIconInCatModal, isDefault: false
       });
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        expenses = JSON.parse(localStorage.getItem("tmc_expenses")) || [];
+        if (expenses.length === 0) seedInitialData();
+      }
       saveState();
       closeModal('categoryModal');
       renderScreen();

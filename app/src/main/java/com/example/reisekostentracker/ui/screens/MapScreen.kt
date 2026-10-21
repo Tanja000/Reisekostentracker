@@ -3,6 +3,7 @@ package com.example.reisekostentracker.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,16 +17,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +75,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+enum class MapPriceFilter {
+    ALL,
+    EXPENSIVE_ONLY, // > 50€
+    CHEAP_ONLY      // < 15€
+}
+
 @Composable
 fun MapScreen(
     viewModel: ExpenseViewModel,
@@ -75,11 +91,36 @@ fun MapScreen(
     val categories by viewModel.categories.collectAsState()
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
+    var priceFilter by remember { mutableStateOf(MapPriceFilter.ALL) }
+
     val expensesWithLocation = remember(expenses) {
         expenses.filter { it.latitude != null && it.longitude != null }
     }
-    val sortedByCost = remember(expensesWithLocation) {
-        expensesWithLocation.sortedByDescending { it.amount }
+
+    val displayedExpenses = remember(expensesWithLocation, priceFilter) {
+        when (priceFilter) {
+            MapPriceFilter.ALL -> expensesWithLocation
+            MapPriceFilter.EXPENSIVE_ONLY -> expensesWithLocation.filter { it.amount >= 50.0 }
+            MapPriceFilter.CHEAP_ONLY -> expensesWithLocation.filter { it.amount < 15.0 }
+        }
+    }
+
+    val sortedByCost = remember(displayedExpenses) {
+        displayedExpenses.sortedByDescending { it.amount }
+    }
+
+    // Hotspot grouping by Location Name
+    val locationHotspots = remember(expensesWithLocation) {
+        expensesWithLocation
+            .groupBy { it.locationName?.trim().takeUnless { s -> s.isNullOrEmpty() } ?: "Unbekannter Ort" }
+            .map { (locName, list) ->
+                val total = list.sumOf { it.amount }
+                val count = list.size
+                val firstWithCoord = list.first()
+                Triple(locName, total, firstWithCoord)
+            }
+            .sortedByDescending { it.second }
+            .take(5)
     }
 
     var selectedExpense by remember { mutableStateOf<Expense?>(null) }
@@ -93,22 +134,22 @@ fun MapScreen(
     }
     val dateFormat = remember { SimpleDateFormat("dd. MMM yyyy", Locale.GERMAN) }
 
-    LaunchedEffect(expensesWithLocation, mapLibreInstance) {
+    LaunchedEffect(displayedExpenses, mapLibreInstance) {
         val map = mapLibreInstance ?: return@LaunchedEffect
         map.clear()
-        expensesWithLocation.forEach { exp ->
+        displayedExpenses.forEach { exp ->
             map.addMarker(
                 MarkerOptions()
                     .position(LatLng(exp.latitude!!, exp.longitude!!))
                     .title(exp.title)
                     .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
-                    .icon(createRedCircleIcon(exp.amount, context))
+                    .icon(createPriceBadgeIcon(exp.amount, context))
             )
         }
-        if (expensesWithLocation.isNotEmpty()) {
+        if (displayedExpenses.isNotEmpty()) {
             try {
                 val boundsBuilder = LatLngBounds.Builder()
-                expensesWithLocation.forEach {
+                displayedExpenses.forEach {
                     boundsBuilder.include(LatLng(it.latitude!!, it.longitude!!))
                 }
                 map.animateCamera(
@@ -131,7 +172,7 @@ fun MapScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Reisekarte & GPS-Orte",
+                        text = "Ausgaben-Karte",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -140,7 +181,7 @@ fun MapScreen(
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = "${expensesWithLocation.size} Orte",
+                            text = "${displayedExpenses.size} Marker",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -150,18 +191,67 @@ fun MapScreen(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Erfahre auf der Karte, wo du überall warst und wo es wie teuer war.",
+                    text = "Farbcodierte Preis-Pins zeigen sofort, wo es besonders günstig oder teuer war.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Price Legend Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem(color = Color(0xFF10B981), label = "< 15 € (Günstig)")
+                    LegendItem(color = Color(0xFFF59E0B), label = "15-50 € (Moderat)")
+                    LegendItem(color = Color(0xFFF97316), label = "50-100 € (Gehoben)")
+                    LegendItem(color = Color(0xFFDC2626), label = "> 100 € 🔥 (Luxus)")
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Filter Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = priceFilter == MapPriceFilter.ALL,
+                        onClick = { priceFilter = MapPriceFilter.ALL },
+                        label = { Text("Alle (${expensesWithLocation.size})") }
+                    )
+                    FilterChip(
+                        selected = priceFilter == MapPriceFilter.EXPENSIVE_ONLY,
+                        onClick = { priceFilter = MapPriceFilter.EXPENSIVE_ONLY },
+                        label = { Text("🔥 Teuer (> 50 €)") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFFEE2E2),
+                            selectedLabelColor = Color(0xFFB91C1C)
+                        )
+                    )
+                    FilterChip(
+                        selected = priceFilter == MapPriceFilter.CHEAP_ONLY,
+                        onClick = { priceFilter = MapPriceFilter.CHEAP_ONLY },
+                        label = { Text("🟢 Günstig (< 15 €)") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFD1FAE5),
+                            selectedLabelColor = Color(0xFF047857)
+                        )
+                    )
+                }
             }
         }
 
+        // Map View Card
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(310.dp),
+                    .height(320.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -185,30 +275,29 @@ fun MapScreen(
                                     }
                                     mapLibreMap.setStyle(Style.Builder().fromUri(styleUri)) {
                                         mapLibreMap.clear()
-                                        expensesWithLocation.forEach { exp ->
+                                        displayedExpenses.forEach { exp ->
                                             mapLibreMap.addMarker(
                                                 MarkerOptions()
                                                     .position(LatLng(exp.latitude!!, exp.longitude!!))
                                                     .title(exp.title)
                                                     .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
-                                                    .icon(createRedCircleIcon(exp.amount, context))
+                                                    .icon(createPriceBadgeIcon(exp.amount, context))
                                             )
                                         }
-                                        if (expensesWithLocation.isNotEmpty()) {
+                                        if (displayedExpenses.isNotEmpty()) {
                                             try {
                                                 val boundsBuilder = LatLngBounds.Builder()
-                                                expensesWithLocation.forEach {
+                                                displayedExpenses.forEach {
                                                     boundsBuilder.include(LatLng(it.latitude!!, it.longitude!!))
                                                 }
                                                 mapLibreMap.animateCamera(
                                                     CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 40)
                                                 )
-                                            } catch (_: Exception) {
-                                            }
+                                            } catch (_: Exception) {}
                                         }
                                     }
                                     mapLibreMap.setOnMarkerClickListener { marker ->
-                                        val match = expensesWithLocation.find { it.title == marker.title }
+                                        val match = displayedExpenses.find { it.title == marker.title }
                                         selectedExpense = match
                                         mapLibreMap.animateCamera(
                                             CameraUpdateFactory.newLatLngZoom(
@@ -224,13 +313,13 @@ fun MapScreen(
                         update = { view ->
                             mapLibreInstance?.let { map ->
                                 map.clear()
-                                expensesWithLocation.forEach { exp ->
+                                displayedExpenses.forEach { exp ->
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(exp.latitude!!, exp.longitude!!))
                                             .title(exp.title)
                                             .snippet("${currencyFormat.format(exp.amount)} € • ${exp.locationName ?: "Standort"}")
-                                            .icon(createRedCircleIcon(exp.amount, context))
+                                            .icon(createPriceBadgeIcon(exp.amount, context))
                                     )
                                 }
                             }
@@ -292,9 +381,84 @@ fun MapScreen(
             }
         }
 
+        // Teuerste Städte / Hotspots Section
+        if (locationHotspots.isNotEmpty()) {
+            item {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🏆 Teuerste Ausgaben-Hotspots",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Nach Ort",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(locationHotspots) { (name, total, sampleExp) ->
+                            Card(
+                                modifier = Modifier
+                                    .clickable {
+                                        if (sampleExp.latitude != null && sampleExp.longitude != null) {
+                                            mapLibreInstance?.animateCamera(
+                                                CameraUpdateFactory.newLatLngZoom(
+                                                    LatLng(sampleExp.latitude, sampleExp.longitude),
+                                                    13.0
+                                                )
+                                            )
+                                        }
+                                    },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (total > 200.0) Color(0xFFFEF2F2) else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Place,
+                                        contentDescription = null,
+                                        tint = if (total > 200.0) Color(0xFFDC2626) else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Column {
+                                        Text(
+                                            text = name,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (total > 200.0) Color(0xFF991B1B) else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "${currencyFormat.format(total)} €",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (total > 200.0) Color(0xFFDC2626) else MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         item {
             Text(
-                text = "Orte & Kosten-Rangliste",
+                text = "Alle Orte & Ausgaben-Rangliste",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -355,12 +519,24 @@ fun MapScreen(
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "${currencyFormat.format(exp.amount)} €",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (exp.amount > 150.0) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurface
-                        )
+                        val isHighCost = exp.amount >= 100.0
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isHighCost) {
+                                Text("🔥", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(2.dp))
+                            }
+                            Text(
+                                text = "${currencyFormat.format(exp.amount)} €",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    exp.amount >= 100.0 -> Color(0xFFDC2626)
+                                    exp.amount >= 50.0 -> Color(0xFFEA580C)
+                                    exp.amount >= 15.0 -> Color(0xFFD97706)
+                                    else -> Color(0xFF059669)
+                                }
+                            )
+                        }
                         if (exp.latitude != null && exp.longitude != null) {
                             Text(
                                 text = String.format(Locale.US, "%.2f, %.2f", exp.latitude, exp.longitude),
@@ -389,26 +565,90 @@ fun MapScreen(
     }
 }
 
-private fun createRedCircleIcon(amount: Double, context: android.content.Context): org.maplibre.android.annotations.Icon {
-    val amt = amount.coerceAtLeast(1.0)
-    // Scale smoothly from 24px to 56px based on square root of amount
-    val size = (20.0 + Math.sqrt(amt) * 2.0).coerceIn(24.0, 56.0).toInt()
-    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private fun createPriceBadgeIcon(amount: Double, context: android.content.Context): org.maplibre.android.annotations.Icon {
+    val amtInt = amount.toInt()
+    val isSuperExpensive = amount >= 100.0
+    val isExpensive = amount >= 50.0 && amount < 100.0
+    val isModerate = amount >= 15.0 && amount < 50.0
+
+    val bgColor = when {
+        isSuperExpensive -> android.graphics.Color.parseColor("#DC2626") // Deep Red
+        isExpensive -> android.graphics.Color.parseColor("#F97316")      // Orange
+        isModerate -> android.graphics.Color.parseColor("#D97706")       // Amber
+        else -> android.graphics.Color.parseColor("#059669")             // Emerald Green
+    }
+
+    val labelText = if (isSuperExpensive) "🔥 $amtInt €" else "$amtInt €"
+
+    val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 30f
+        typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        textAlign = android.graphics.Paint.Align.CENTER
+    }
+
+    val textBounds = android.graphics.Rect()
+    textPaint.getTextBounds(labelText, 0, labelText.length, textBounds)
+
+    val horizPadding = 24f
+    val pillWidth = (textBounds.width() + horizPadding * 2).coerceAtLeast(80f)
+    val pillHeight = 44f
+    val pointerHeight = 12f
+    val totalHeight = pillHeight + pointerHeight
+
+    val bitmap = android.graphics.Bitmap.createBitmap(pillWidth.toInt(), totalHeight.toInt(), android.graphics.Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bitmap)
 
-    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.argb(210, 239, 68, 68) // red with slight translucency
+    // Shadow / base paint
+    val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = bgColor
         style = android.graphics.Paint.Style.FILL
     }
+
     val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
+        color = if (isSuperExpensive) android.graphics.Color.parseColor("#FEF08A") else android.graphics.Color.WHITE
         style = android.graphics.Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = if (isSuperExpensive) 4f else 3f
     }
 
-    val radius = (size / 2f) - 2f
-    canvas.drawCircle(size / 2f, size / 2f, radius, fillPaint)
-    canvas.drawCircle(size / 2f, size / 2f, radius, strokePaint)
+    // Path for rounded pill + triangle arrow at bottom center
+    val path = android.graphics.Path()
+    val rect = android.graphics.RectF(2f, 2f, pillWidth - 2f, pillHeight)
+    val cornerRadius = 22f
+    path.addRoundRect(rect, cornerRadius, cornerRadius, android.graphics.Path.Direction.CW)
+
+    // Pointer arrow
+    val centerX = pillWidth / 2f
+    path.moveTo(centerX - 10f, pillHeight - 1f)
+    path.lineTo(centerX, totalHeight - 2f)
+    path.lineTo(centerX + 10f, pillHeight - 1f)
+    path.close()
+
+    canvas.drawPath(path, bgPaint)
+    canvas.drawPath(path, strokePaint)
+
+    // Draw text
+    val textY = (pillHeight / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f)
+    canvas.drawText(labelText, centerX, textY, textPaint)
 
     return org.maplibre.android.annotations.IconFactory.getInstance(context).fromBitmap(bitmap)
 }

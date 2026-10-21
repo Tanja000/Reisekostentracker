@@ -67,12 +67,9 @@ class ExpenseRepository(context: Context) {
             _categories.value = dbHelper.getAllCategories()
             _trips.value = dbHelper.getAllTrips()
 
-            val hasSeeded = prefs.getBoolean("has_seeded_initial", false)
-            if (!hasSeeded) {
-                val existing = dbHelper.getAllExpenses()
-                if (existing.isEmpty()) {
-                    insertInitialDemoData()
-                }
+            val existing = dbHelper.getAllExpenses()
+            if (existing.isEmpty()) {
+                insertInitialDemoData()
                 prefs.edit().putBoolean("has_seeded_initial", true).apply()
             }
 
@@ -171,6 +168,7 @@ class ExpenseRepository(context: Context) {
         scope.launch {
             dbHelper.insertCategory(cat)
             _categories.value = dbHelper.getAllCategories()
+            _expenses.value = dbHelper.getAllExpenses()
         }
     }
 
@@ -178,6 +176,7 @@ class ExpenseRepository(context: Context) {
         scope.launch {
             dbHelper.updateCategory(category)
             _categories.value = dbHelper.getAllCategories()
+            _expenses.value = dbHelper.getAllExpenses()
         }
     }
 
@@ -185,6 +184,7 @@ class ExpenseRepository(context: Context) {
         scope.launch {
             dbHelper.deleteCategory(id)
             _categories.value = dbHelper.getAllCategories()
+            _expenses.value = dbHelper.getAllExpenses()
         }
     }
 

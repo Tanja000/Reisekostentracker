@@ -277,23 +277,50 @@ fun StatisticsScreen(
                 }
             }
 
-            // FEATURE 1: ANDROID AICORE FRUSTKAUF-ANALYSE & EINSPARPOTENZIALE
-            aiFrustrationReport?.let { report ->
-                item {
-                    AiFrustrationCard(
-                        report = report,
-                        currencyFormat = currencyFormat
-                    )
-                }
-            }
-
-            // FEATURE 2: WELTBANK & ZINSESZINS OPPORTUNITÄTSKOSTEN-RECHNER
+            // SPAR-KI BANNER
             item {
-                WorldBankOpportunityCard(
-                    insights = aiOpportunityInsights,
-                    inflationRate = worldBankInflationRate,
-                    currencyFormat = currencyFormat
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Spar-KI & Frust-Coach aktiv",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Detaillierte Frustkauf-Analysen & Weltbank-Zinseszins im Tab 'Spar-KI'.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+                }
             }
 
             // KUCHENDIAGRAMM

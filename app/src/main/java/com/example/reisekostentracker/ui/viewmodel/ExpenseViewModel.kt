@@ -500,10 +500,14 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         } else {
             repository.addCategory(name, iconName, colorValue)
         }
+        _selectedCategoryId.value = null
         closeCategoryDialog()
     }
 
     fun deleteCategory(id: String) {
+        if (_selectedCategoryId.value == id) {
+            _selectedCategoryId.value = null
+        }
         repository.deleteCategory(id)
     }
 

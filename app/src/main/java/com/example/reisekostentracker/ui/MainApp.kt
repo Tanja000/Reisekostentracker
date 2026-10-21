@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
@@ -52,6 +53,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.reisekostentracker.ui.components.AddEditCategoryDialog
 import com.example.reisekostentracker.ui.components.AddEditExpenseDialog
+import com.example.reisekostentracker.ui.screens.AiSavingsScreen
 import com.example.reisekostentracker.ui.screens.BudgetsScreen
 import com.example.reisekostentracker.ui.screens.CategoriesScreen
 import com.example.reisekostentracker.ui.screens.ExpensesScreen
@@ -62,6 +64,7 @@ import com.example.reisekostentracker.ui.viewmodel.ExpenseViewModel
 sealed class NavItem(val title: String, val icon: ImageVector) {
     object Expenses : NavItem("Ausgaben", Icons.Default.Payments)
     object Statistics : NavItem("Statistiken", Icons.Default.Analytics)
+    object SavingsAi : NavItem("Spar-KI", Icons.Default.AutoAwesome)
     object Map : NavItem("Karte", Icons.Default.Map)
     object Categories : NavItem("Kategorien", Icons.Default.Category)
     object Budgets : NavItem("Budgets", Icons.Default.AccountBalanceWallet)
@@ -112,6 +115,7 @@ fun MainApp(
     val navItems = listOf(
         NavItem.Expenses,
         NavItem.Statistics,
+        NavItem.SavingsAi,
         NavItem.Map,
         NavItem.Categories,
         NavItem.Budgets
@@ -212,9 +216,10 @@ fun MainApp(
                 when (tab) {
                     0 -> ExpensesScreen(viewModel = viewModel)
                     1 -> StatisticsScreen(viewModel = viewModel)
-                    2 -> MapScreen(viewModel = viewModel)
-                    3 -> CategoriesScreen(viewModel = viewModel)
-                    4 -> BudgetsScreen(viewModel = viewModel)
+                    2 -> AiSavingsScreen(viewModel = viewModel)
+                    3 -> MapScreen(viewModel = viewModel)
+                    4 -> CategoriesScreen(viewModel = viewModel)
+                    5 -> BudgetsScreen(viewModel = viewModel)
                 }
             }
         }
