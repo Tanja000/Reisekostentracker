@@ -356,14 +356,31 @@ fun ExpensesScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = expense.title,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.weight(1f, fill = false)
-                                        )
+                                        ) {
+                                            Text(
+                                                text = expense.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (!expense.feelingEmoji.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                                ) {
+                                                    Text(
+                                                        text = expense.feelingEmoji,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = "${currencyFormat.format(expense.amount)} €",
@@ -456,13 +473,14 @@ fun ExpensesScreen(
             preset = preset,
             currentLocationName = lastLocationName,
             onDismiss = { activeQuickAdd = null },
-            onConfirm = { amount, method, location ->
+            onConfirm = { amount, method, location, feelingEmoji ->
                 viewModel.quickAddExpense(
                     title = preset.title,
                     amount = amount,
                     categoryId = preset.categoryId,
                     paymentMethod = method,
-                    customLocation = location
+                    customLocation = location,
+                    feelingEmoji = feelingEmoji
                 )
                 Toast.makeText(
                     context,

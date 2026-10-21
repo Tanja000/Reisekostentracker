@@ -842,6 +842,8 @@
         <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)" id="lblExpCategory">Kategorie *</label>
         <div class="cat-selector" id="modalCategoryList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
 
+        <div id="modalEmotionSection" style="margin-bottom:12px;"></div>
+
         <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)" id="lblExpLocation">Ort / GPS-Standort (optional)</label>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
           <input type="text" id="expLocation" class="text-input" style="margin-bottom:0;" placeholder="z.B. München Zentrum...">
@@ -906,6 +908,8 @@
           <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Frankfurt'">Frankfurt</span>
           <span class="chip" style="font-size:11px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('quickLocation').value='Stuttgart'">Stuttgart</span>
         </div>
+
+        <div id="quickEmotionSection" style="margin-bottom:12px;"></div>
 
         <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant)">Zahlungsmethode</label>
         <select id="quickPayment" class="select-input">
@@ -1216,15 +1220,36 @@
     const DEFAULT_CATEGORIES = [
       { id: "cat_lebensmittel", nameDe: "Lebensmittel & Supermarkt", nameEn: "Groceries & Supermarket", icon: "shopping_cart", color: "#10B981", isDefault: true },
       { id: "cat_wohnen", nameDe: "Miete & Wohnen", nameEn: "Rent & Housing", icon: "home", color: "#6366F1", isDefault: true },
-      { id: "cat_gastronomie", nameDe: "Restaurant & Caf\u00E9", nameEn: "Dining & Caf\u00E9", icon: "restaurant", color: "#F59E0B", isDefault: true },
-      { id: "cat_transport", nameDe: "Mobilit\u00E4t & Transport", nameEn: "Mobility & Transport", icon: "directions_car", color: "#06B6D4", isDefault: true },
+      { id: "cat_gastronomie", nameDe: "Restaurant & Café", nameEn: "Dining & Café", icon: "restaurant", color: "#F59E0B", isDefault: true },
+      { id: "cat_transport", nameDe: "Mobilität & Transport", nameEn: "Mobility & Transport", icon: "directions_car", color: "#06B6D4", isDefault: true },
       { id: "cat_shopping", nameDe: "Shopping & Kleidung", nameEn: "Shopping & Fashion", icon: "shopping_bag", color: "#EC4899", isDefault: true },
       { id: "cat_freizeit", nameDe: "Freizeit & Hobby", nameEn: "Leisure & Entertainment", icon: "sports_esports", color: "#8B5CF6", isDefault: true },
       { id: "cat_gesundheit", nameDe: "Gesundheit & Drogerie", nameEn: "Health & Pharmacy", icon: "medical_services", color: "#EF4444", isDefault: true },
-      { id: "cat_abos", nameDe: "Vertr\u00E4ge & Abos", nameEn: "Subscriptions & Bills", icon: "subscriptions", color: "#3B82F6", isDefault: true },
+      { id: "cat_abos", nameDe: "Verträge & Abos", nameEn: "Subscriptions & Bills", icon: "subscriptions", color: "#3B82F6", isDefault: true },
       { id: "cat_reisen", nameDe: "Urlaub & Reisen", nameEn: "Travel & Vacation", icon: "flight", color: "#14B8A6", isDefault: true },
       { id: "cat_sonstiges", nameDe: "Sonstiges", nameEn: "Miscellaneous", icon: "category", color: "#64748B", isDefault: true }
     ];
+
+    // 10 Emojis für Konsumempfindungen (ohne Miete & Grundnahrungsmittel)
+    const PURCHASE_EMOTIONS = [
+      { emoji: "😍", label: "Traum", isFrustration: false },
+      { emoji: "😊", label: "Zufrieden", isFrustration: false },
+      { emoji: "🥳", label: "Belohnung", isFrustration: false },
+      { emoji: "☕", label: "Routine", isFrustration: false },
+      { emoji: "🤔", label: "Zweifel", isFrustration: false },
+      { emoji: "⚡", label: "Impuls", isFrustration: true },
+      { emoji: "🥱", label: "Langeweile", isFrustration: true },
+      { emoji: "💸", label: "Zu teuer", isFrustration: true },
+      { emoji: "🤦", label: "Frustkauf", isFrustration: true },
+      { emoji: "😡", label: "Fehlkauf", isFrustration: true }
+    ];
+
+    function shouldAskEmotion(catId) {
+      return catId !== 'cat_wohnen' && catId !== 'cat_lebensmittel';
+    }
+
+    let selectedEmotionInModal = null;
+    let selectedEmotionInQuickAdd = null;
 
     function getCategory(catId) {
       const c = categories.find(x => x.id === catId);
@@ -1353,19 +1378,19 @@
         return dt.toISOString().split('T')[0];
       }
       expenses = [
-        { id: "1", title: "Rewe Wocheneinkauf", amount: 68.40, categoryId: "cat_lebensmittel", date: daysAgo(0), notes: "Frische Vorr\u00E4te", paymentMethod: "Karte", lat: 48.1371, lng: 11.5754, location: "M\u00FCnchen Zentrum" },
-        { id: "2", title: "Espresso & Croissant B\u00E4ckerei", amount: 4.80, categoryId: "cat_gastronomie", date: daysAgo(0), notes: "Morgenkaffee", paymentMethod: "Bar", lat: 48.1610, lng: 11.5864, location: "Schwabing" },
-        { id: "3", title: "Miet\u00FCberweisung & Nebenkosten", amount: 750.00, categoryId: "cat_wohnen", date: daysAgo(1), notes: "Monatsmiete warm", paymentMethod: "Online", lat: 48.1400, lng: 11.5600, location: "Wohnung" },
-        { id: "4", title: "Deutschlandticket \u00D6PNV", amount: 49.00, categoryId: "cat_transport", date: daysAgo(2), notes: "Monatsticket Bus & Bahn", paymentMethod: "Online", lat: 48.1390, lng: 11.5650, location: "Hauptbahnhof" },
-        { id: "5", title: "dm Drogerie Einkauf", amount: 21.30, categoryId: "cat_gesundheit", date: daysAgo(2), notes: "Drogeriebedarf", paymentMethod: "Karte", lat: 48.1350, lng: 11.5780, location: "Drogeriemarkt" },
-        { id: "6", title: "Abendessen Lieblings-Italiener", amount: 42.50, categoryId: "cat_gastronomie", date: daysAgo(3), notes: "Pasta & Wein", paymentMethod: "Karte", lat: 48.1520, lng: 11.5800, location: "Trattoria da Luigi" },
-        { id: "7", title: "Fitnessstudio Monatsbeitrag", amount: 35.00, categoryId: "cat_abos", date: daysAgo(4), notes: "FitX Mitgliedschaft", paymentMethod: "Online", lat: 48.1300, lng: 11.5900, location: "Gym Studio" },
-        { id: "8", title: "Netflix & Spotify Abos", amount: 22.98, categoryId: "cat_abos", date: daysAgo(5), notes: "Streaming Dienste", paymentMethod: "Online", lat: 48.1400, lng: 11.5700, location: "Online" },
-        { id: "9", title: "Neue Sneaker H&M", amount: 79.95, categoryId: "cat_shopping", date: daysAgo(6), notes: "Schuhe & Shirt", paymentMethod: "Karte", lat: 48.1380, lng: 11.5730, location: "Kaufingerstra\u00DFe" },
-        { id: "10", title: "Kino & Popcorn am Abend", amount: 24.50, categoryId: "cat_freizeit", date: daysAgo(8), notes: "Cinema Preview", paymentMethod: "Karte", lat: 48.1450, lng: 11.5620, location: "Filmpalast" },
-        { id: "11", title: "Tanken Aral Super E10", amount: 55.20, categoryId: "cat_transport", date: daysAgo(10), notes: "Volltanken", paymentMethod: "Karte", lat: 48.1650, lng: 11.5950, location: "Tankstelle" },
-        { id: "12", title: "Apotheke Schmerzmittel", amount: 12.80, categoryId: "cat_gesundheit", date: daysAgo(12), notes: "Ibuprofen", paymentMethod: "Bar", lat: 48.1360, lng: 11.5760, location: "Apotheke" },
-        { id: "13", title: "Wochenmarkt frisches Obst", amount: 14.50, categoryId: "cat_lebensmittel", date: daysAgo(14), notes: "Obst & Gem\u00FCse", paymentMethod: "Bar", lat: 48.1351, lng: 11.5761, location: "Viktualienmarkt" }
+        { id: "1", title: "Rewe Wocheneinkauf", amount: 68.40, categoryId: "cat_lebensmittel", date: daysAgo(0), notes: "Frische Vorräte", paymentMethod: "Karte", lat: 48.1371, lng: 11.5754, location: "München Zentrum", feelingEmoji: null },
+        { id: "2", title: "Espresso & Croissant Bäckerei", amount: 4.80, categoryId: "cat_gastronomie", date: daysAgo(0), notes: "Morgenkaffee", paymentMethod: "Bar", lat: 48.1610, lng: 11.5864, location: "Schwabing", feelingEmoji: "☕" },
+        { id: "3", title: "Mietüberweisung & Nebenkosten", amount: 750.00, categoryId: "cat_wohnen", date: daysAgo(1), notes: "Monatsmiete warm", paymentMethod: "Online", lat: 48.1400, lng: 11.5600, location: "Wohnung", feelingEmoji: null },
+        { id: "4", title: "Deutschlandticket ÖPNV", amount: 49.00, categoryId: "cat_transport", date: daysAgo(2), notes: "Monatsticket Bus & Bahn", paymentMethod: "Online", lat: 48.1390, lng: 11.5650, location: "Hauptbahnhof", feelingEmoji: "😊" },
+        { id: "5", title: "dm Drogerie Einkauf", amount: 21.30, categoryId: "cat_gesundheit", date: daysAgo(2), notes: "Drogeriebedarf", paymentMethod: "Karte", lat: 48.1350, lng: 11.5780, location: "Drogeriemarkt", feelingEmoji: "☕" },
+        { id: "6", title: "Abendessen Lieblings-Italiener", amount: 42.50, categoryId: "cat_gastronomie", date: daysAgo(3), notes: "Pasta & Wein", paymentMethod: "Karte", lat: 48.1520, lng: 11.5800, location: "Trattoria da Luigi", feelingEmoji: "😍" },
+        { id: "7", title: "Fitnessstudio Monatsbeitrag", amount: 35.00, categoryId: "cat_abos", date: daysAgo(4), notes: "FitX Mitgliedschaft", paymentMethod: "Online", lat: 48.1300, lng: 11.5900, location: "Gym Studio", feelingEmoji: "😊" },
+        { id: "8", title: "Netflix & Spotify Abos", amount: 22.98, categoryId: "cat_abos", date: daysAgo(5), notes: "Streaming Dienste", paymentMethod: "Online", lat: 48.1400, lng: 11.5700, location: "Online", feelingEmoji: "😊" },
+        { id: "9", title: "Neue Sneaker H&M", amount: 79.95, categoryId: "cat_shopping", date: daysAgo(6), notes: "Schuhe & Shirt", paymentMethod: "Karte", lat: 48.1380, lng: 11.5730, location: "Kaufingerstraße", feelingEmoji: "⚡" },
+        { id: "10", title: "Kino & Popcorn am Abend", amount: 24.50, categoryId: "cat_freizeit", date: daysAgo(8), notes: "Cinema Preview", paymentMethod: "Karte", lat: 48.1450, lng: 11.5620, location: "Filmpalast", feelingEmoji: "🥳" },
+        { id: "11", title: "Tanken Aral Super E10", amount: 55.20, categoryId: "cat_transport", date: daysAgo(10), notes: "Volltanken", paymentMethod: "Karte", lat: 48.1650, lng: 11.5950, location: "Tankstelle", feelingEmoji: "💸" },
+        { id: "12", title: "Apotheke Schmerzmittel", amount: 12.80, categoryId: "cat_gesundheit", date: daysAgo(12), notes: "Ibuprofen", paymentMethod: "Bar", lat: 48.1360, lng: 11.5760, location: "Apotheke", feelingEmoji: "🤦" },
+        { id: "13", title: "Wochenmarkt frisches Obst", amount: 14.50, categoryId: "cat_lebensmittel", date: daysAgo(14), notes: "Obst & Gemüse", paymentMethod: "Bar", lat: 48.1351, lng: 11.5761, location: "Viktualienmarkt", feelingEmoji: null }
       ];
       ensureCoordinatesForExpenses();
       saveState();
@@ -1522,8 +1547,11 @@
               </div>
               <div style="flex:1; min-width:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:14.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:8px;">${exp.title}</span>
-                  <span style="font-size:15px; font-weight:800; color:var(--primary); white-space:nowrap;">${formatCurrency(exp.amount)}</span>
+                  <div style="display:flex; align-items:center; min-width:0;">
+                    <span style="font-size:14.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-right:6px;">${exp.title}</span>
+                    ${exp.feelingEmoji ? `<span style="font-size:11.5px; background:var(--primary-container); padding:1px 6px; border-radius:10px; flex-shrink:0;">${exp.feelingEmoji}</span>` : ''}
+                  </div>
+                  <span style="font-size:15px; font-weight:800; color:var(--primary); white-space:nowrap; margin-left:8px;">${formatCurrency(exp.amount)}</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                   <div style="font-size:11.5px; color:var(--outline); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -1624,6 +1652,94 @@
             <div style="font-size:10.5px; font-weight:700; color:var(--outline); text-transform:uppercase;">${t('dailyAvg')}</div>
             <div style="font-size:20px; font-weight:900; color:var(--on-surface); margin-top:2px;">${formatCurrency(dailyAverage)}</div>
             <div style="font-size:10.5px; color:var(--outline); margin-top:2px;">${daysSpan} Tage Spanne</div>
+          </div>
+        </div>
+
+        <!-- FEATURE 1: ANDROID AICORE FRUSTKAUF-ANALYSE -->
+        <div class="card" style="margin-bottom:12px; border:1px solid rgba(37,99,235,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">psychology</span>
+              <div>
+                <div style="font-size:13.5px; font-weight:800;">Android AICore Analyse</div>
+                <div style="font-size:10.5px; color:var(--outline);">Frustkäufe & Einsparpotenziale</div>
+              </div>
+            </div>
+            <span style="background:rgba(37,99,235,0.12); color:var(--primary); font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
+              ⚡ AICore on-device
+            </span>
+          </div>
+          ${(() => {
+            const frustList = expenses.filter(e => e.feelingEmoji && ['⚡', '🥱', '💸', '🤦', '😡'].includes(e.feelingEmoji));
+            const totalFrust = frustList.reduce((s, e) => s + Number(e.amount), 0);
+            const annualSavings = totalFrust * 12;
+            if (frustList.length > 0) {
+              return `
+                <div style="background:rgba(239,68,68,0.1); border-radius:12px; padding:10px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <div style="font-size:10.5px; color:#ef4444; font-weight:700;">Frust- & Impulskosten</div>
+                    <div style="font-size:18px; font-weight:900; color:#ef4444;">${formatCurrency(totalFrust)}</div>
+                    <div style="font-size:10px; color:var(--outline);">${frustList.length} unüberlegte Käufe</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:10px; color:var(--outline);">Jahres-Sparpotenzial</div>
+                    <div style="font-size:15px; font-weight:800; color:#16a34a;">≈ ${formatCurrency(annualSavings)}</div>
+                  </div>
+                </div>
+                <div style="font-size:11.5px; font-weight:700; color:var(--on-surface); margin-bottom:4px;">
+                  💡 AICore Vorbeugungs-Strategien:
+                </div>
+                <div style="font-size:11px; color:var(--on-surface-variant); line-height:1.4;">
+                  • <b>48-Stunden-Wartezeit:</b> Spontankäufe ab 20 € zunächst zwei Tage auf die Wunschliste setzen.<br>
+                  • <b>Ersatz-Ritual bei Frust & Langeweile:</b> Spaziergang oder Tee statt Scrollen im Onlineshop.<br>
+                  • <b>Festes Belohnungs-Budget:</b> Maximal 30 € pro Monat bar für Frustkäufe reservieren.
+                </div>
+              `;
+            } else {
+              return `
+                <div style="background:rgba(22,163,74,0.1); border-radius:10px; padding:10px 12px; font-size:11.5px; color:#16a34a; font-weight:600;">
+                  ✓ Bisher keine Frust- oder Impulskäufe erfasst! Deine Konsumentscheidungen sind bewusst und reflektiert.
+                </div>
+              `;
+            }
+          })()}
+        </div>
+
+        <!-- FEATURE 2: WELTBANK & ZINSESZINS OPPORTUNITÄTSKOSTEN -->
+        <div class="card" style="margin-bottom:12px; border:1px solid rgba(2,132,199,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-rounded" style="color:#0284c7; font-size:22px;">trending_up</span>
+              <div>
+                <div style="font-size:13.5px; font-weight:800;">Zinseszins & Inflation</div>
+                <div style="font-size:10.5px; color:var(--outline);">Weltbank API & Opportunitätskosten</div>
+              </div>
+            </div>
+            <span style="background:rgba(2,132,199,0.12); color:#0284c7; font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:6px;">
+              DEU 2,25 % Inf.
+            </span>
+          </div>
+          <div style="font-size:11.5px; color:var(--on-surface-variant); margin-bottom:10px;">
+            Was wäre, wenn du Konsum- und Spontanausgaben stattdessen mit 7 % p.a. angelegt hättest?
+          </div>
+          <!-- Creative AI Quote Card -->
+          <div style="background:var(--primary-container); border-radius:12px; padding:10px 12px; margin-bottom:10px; display:flex; gap:8px; align-items:flex-start;">
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:18px; flex-shrink:0; margin-top:1px;">lightbulb</span>
+            <div style="font-size:11.5px; font-weight:600; font-style:italic; color:var(--on-primary-container);">
+              „Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €, die dir in deiner Altersvorsorge fehlen.“
+            </div>
+          </div>
+          <div style="background:var(--surface-variant); border-radius:10px; padding:10px 12px; font-size:11px; line-height:1.4;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>35,00 € Spontankauf angelegt (7 % p.a.):</span>
+              <b style="color:#16a34a;">in 30 Jahren ≈ 266,43 €</b>
+            </div>
+            <div style="color:var(--outline); font-size:10px;">
+              Inflationsbereinigte Kaufkraft: ≈ 135,44 € (bei 2,25 % Weltbank-Inflation über 30 Jahre).
+            </div>
+          </div>
+          <div style="font-size:9.5px; color:var(--outline); margin-top:8px;">
+            💡 Datenbasis: Weltbank Open Data API (DEU FP.CPI.TOTL.ZG) • 7 % p.a. historische ETF-Rendite.
           </div>
         </div>
         <div class="card" style="margin-bottom:12px;">
@@ -2082,6 +2198,37 @@
     let activeQuickAddPreset = null;
     let currentGpsCity = "Karlsruhe";
 
+    function renderQuickEmotions(catId) {
+      const container = document.getElementById('quickEmotionSection');
+      if (!container) return;
+      if (!shouldAskEmotion(catId)) {
+        selectedEmotionInQuickAdd = null;
+        container.innerHTML = `
+          <div style="background:var(--surface-variant); border-radius:10px; padding:8px 12px; font-size:11px; color:var(--outline); display:flex; align-items:center; gap:6px;">
+            <span>🏠</span>
+            <span>Miete & Grundnahrungsmittel: Emotionale Bewertung entfällt.</span>
+          </div>
+        `;
+        return;
+      }
+      container.innerHTML = `
+        <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant); display:block; margin-bottom:4px;">
+          Gefühl beim Kauf (10 Emojis)
+        </label>
+        <div style="display:flex; flex-wrap:wrap; gap:5px;">
+          ${PURCHASE_EMOTIONS.map(em => {
+            const isSel = selectedEmotionInQuickAdd === em.emoji;
+            return `
+              <button type="button" class="chip" style="background:${isSel ? 'var(--primary)' : 'var(--surface-variant)'}; color:${isSel ? '#ffffff' : 'var(--on-surface)'}; border:none; padding:4px 8px; cursor:pointer; font-size:11px; display:flex; align-items:center; gap:3px; border-radius:8px;" onclick="selectedEmotionInQuickAdd = '${em.emoji}'; renderQuickEmotions('${catId}');">
+                <span style="font-size:13px;">${em.emoji}</span>
+                <span style="font-size:10px; font-weight:${isSel ? '800' : '600'};">${em.label}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
     function openQuickAddModal(title, defaultAmount, categoryId, defaultPayment, icon) {
       activeQuickAddPreset = { title, defaultAmount, categoryId, defaultPayment, icon };
       const titleEl = document.getElementById('quickModalTitle');
@@ -2092,6 +2239,8 @@
       document.getElementById('quickCategoryId').value = categoryId;
       document.getElementById('quickPayment').value = defaultPayment || 'Karte';
       document.getElementById('quickLocation').value = currentGpsCity || "Karlsruhe";
+      selectedEmotionInQuickAdd = null;
+      renderQuickEmotions(categoryId);
       document.getElementById('quickAddModal').classList.add('active');
     }
 
@@ -2102,6 +2251,7 @@
       const paymentMethod = document.getElementById('quickPayment').value;
       const catId = document.getElementById('quickCategoryId').value || (activeQuickAddPreset ? activeQuickAddPreset.categoryId : 'cat_gastronomie');
       const title = activeQuickAddPreset ? activeQuickAddPreset.title : "Schnellbuchung";
+      const feeling = shouldAskEmotion(catId) ? selectedEmotionInQuickAdd : null;
       
       resolveGeoLocation(locName, (resolved) => {
         const today = new Date().toISOString().split('T')[0];
@@ -2113,6 +2263,7 @@
           date: today,
           paymentMethod: paymentMethod,
           notes: "⚡ Schnellbuchung",
+          feelingEmoji: feeling,
           location: resolved.name,
           lat: resolved.lat,
           lng: resolved.lng
@@ -2196,6 +2347,7 @@
         document.getElementById("expNotes").value = exp.notes || "";
         document.getElementById("expPayment").value = exp.paymentMethod || "Karte";
         selectedCatInModal = exp.categoryId || categories[0].id;
+        selectedEmotionInModal = exp.feelingEmoji || null;
       } else {
         if (titleEl) titleEl.innerText = t("addExpense");
         document.getElementById("expId").value = "";
@@ -2205,8 +2357,10 @@
         document.getElementById("expDate").value = new Date().toISOString().split('T')[0];
         document.getElementById("expNotes").value = "";
         selectedCatInModal = categories[0].id;
+        selectedEmotionInModal = null;
       }
       renderModalCategories();
+      renderModalEmotions();
       if (!exp && gpsConsent === "allowed") detectGpsLocation();
       document.getElementById("expenseModal").classList.add("active");
     }
@@ -2217,12 +2371,43 @@
         const isSel = cat.id === selectedCatInModal;
         const displayName = currentLang === 'en' ? (cat.nameEn || cat.name) : (cat.nameDe || cat.name);
         return `
-          <div class="chip" style="background:${isSel ? cat.color : cat.color + '20'}; color:${isSel ? '#ffffff' : cat.color}; display:flex; align-items:center; gap:5px;" onclick="selectedCatInModal = '${cat.id}'; renderModalCategories();">
+          <div class="chip" style="background:${isSel ? cat.color : cat.color + '20'}; color:${isSel ? '#ffffff' : cat.color}; display:flex; align-items:center; gap:5px;" onclick="selectedCatInModal = '${cat.id}'; renderModalCategories(); renderModalEmotions();">
             <span class="material-symbols-rounded" style="font-size:16px">${cat.icon}</span>
             <span>${displayName}</span>
           </div>
         `;
       }).join('');
+    }
+
+    function renderModalEmotions() {
+      const container = document.getElementById("modalEmotionSection");
+      if (!container) return;
+      if (!shouldAskEmotion(selectedCatInModal)) {
+        selectedEmotionInModal = null;
+        container.innerHTML = `
+          <div style="background:var(--surface-variant); border-radius:10px; padding:8px 12px; font-size:11.5px; color:var(--outline); display:flex; align-items:center; gap:8px;">
+            <span>🏠</span>
+            <span>Miete & Grundnahrungsmittel: Emotionale Kaufbewertung entfällt.</span>
+          </div>
+        `;
+        return;
+      }
+      container.innerHTML = `
+        <label style="font-size:11.5px; font-weight:700; color:var(--on-surface-variant); display:block; margin-bottom:4px;">
+          Wie hast du diesen Kauf empfunden? (10 Emojis)
+        </label>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${PURCHASE_EMOTIONS.map(em => {
+            const isSel = selectedEmotionInModal === em.emoji;
+            return `
+              <button type="button" class="chip" style="background:${isSel ? 'var(--primary)' : 'var(--surface-variant)'}; color:${isSel ? '#ffffff' : 'var(--on-surface)'}; border:none; padding:5px 9px; cursor:pointer; font-size:11.5px; display:flex; align-items:center; gap:4px; border-radius:8px;" onclick="selectedEmotionInModal = '${em.emoji}'; renderModalEmotions();">
+                <span style="font-size:14px;">${em.emoji}</span>
+                <span style="font-weight:${isSel ? '800' : '600'}; font-size:10.5px;">${em.label}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
     function handleSaveExpense(e) {
@@ -2234,6 +2419,7 @@
       const date = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
       const paymentMethod = document.getElementById("expPayment").value;
       const notes = document.getElementById("expNotes").value.trim();
+      const feeling = shouldAskEmotion(selectedCatInModal) ? selectedEmotionInModal : null;
       
       resolveGeoLocation(location || currentGpsCity || "Karlsruhe", (resolved) => {
         if (expId) {
@@ -2247,6 +2433,7 @@
               date,
               paymentMethod,
               notes,
+              feelingEmoji: feeling,
               location: location || resolved.name,
               lat: resolved.lat,
               lng: resolved.lng
@@ -2261,6 +2448,7 @@
             date,
             paymentMethod,
             notes,
+            feelingEmoji: feeling,
             location: location || resolved.name,
             lat: currentGpsCoords && !location ? currentGpsCoords.lat : resolved.lat,
             lng: currentGpsCoords && !location ? currentGpsCoords.lng : resolved.lng

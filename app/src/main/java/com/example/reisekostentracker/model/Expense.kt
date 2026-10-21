@@ -1,4 +1,4 @@
-﻿package com.example.reisekostentracker.model
+package com.example.reisekostentracker.model
 
 data class Expense(
     val id: String,
@@ -12,5 +12,6 @@ data class Expense(
     val paymentMethod: String = "Karte",
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val locationName: String? = null
+    val locationName: String? = null,
+    val feelingEmoji: String? = null
 )

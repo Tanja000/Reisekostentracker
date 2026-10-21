@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,12 +41,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
+import com.example.reisekostentracker.model.PurchaseEmotions
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -67,7 +72,8 @@ fun AddEditExpenseDialog(
         date: Long,
         notes: String,
         paymentMethod: String,
-        locationName: String?
+        locationName: String?,
+        feelingEmoji: String?
     ) -> Unit
 ) {
     var title by remember { mutableStateOf(initialExpense?.title ?: "") }
@@ -85,6 +91,7 @@ fun AddEditExpenseDialog(
     var selectedDate by remember { mutableStateOf(initialExpense?.date ?: System.currentTimeMillis()) }
     var notes by remember { mutableStateOf(initialExpense?.notes ?: "") }
     var paymentMethod by remember { mutableStateOf(initialExpense?.paymentMethod ?: "Karte") }
+    var feelingEmoji by remember { mutableStateOf(initialExpense?.feelingEmoji) }
     var locationName by remember {
         mutableStateOf(
             initialExpense?.locationName
@@ -180,6 +187,86 @@ fun AddEditExpenseDialog(
                             },
                             label = { Text(cat.name) }
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 10 Emojis für Kaufempfindungen (Frustkauf, Zufriedenheit, Gönnung...)
+                if (PurchaseEmotions.shouldAskEmotion(selectedCategoryId)) {
+                    Text(
+                        text = "Wie hast du diesen Kauf empfunden?",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Wähle aus 10 Emojis (KI-Analyse für Frust- & Impulskäufe):",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(PurchaseEmotions.list) { emotion ->
+                            val isSelected = feelingEmoji == emotion.emoji
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                                modifier = Modifier.clickable {
+                                    feelingEmoji = if (feelingEmoji == emotion.emoji) null else emotion.emoji
+                                }
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                ) {
+                                    Text(text = emotion.emoji, fontSize = 22.sp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = emotion.title,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    feelingEmoji?.let { emoji ->
+                        val emotion = PurchaseEmotions.fromEmoji(emoji)
+                        if (emotion != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${emotion.emoji} ${emotion.title}: ${emotion.description}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (emotion.isFrustrationOrImpulse) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🏠", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Miete & Grundnahrungsmittel: Emotionale Kaufbewertung entfällt.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
                 }
 
@@ -323,7 +410,8 @@ fun AddEditExpenseDialog(
                             selectedDate,
                             notes.trim(),
                             paymentMethod,
-                            locationName.trim().ifEmpty { null }
+                            locationName.trim().ifEmpty { null },
+                            feelingEmoji
                         )
                     }
                 }

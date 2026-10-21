@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.reisekostentracker.model.PurchaseEmotions
 import java.util.Locale
 
 data class QuickAddPreset(
@@ -70,12 +72,13 @@ fun QuickAddConfirmDialog(
     preset: QuickAddPreset,
     currentLocationName: String?,
     onDismiss: () -> Unit,
-    onConfirm: (amount: Double, paymentMethod: String, location: String) -> Unit
+    onConfirm: (amount: Double, paymentMethod: String, location: String, feelingEmoji: String?) -> Unit
 ) {
     var amountText by remember {
         mutableStateOf(String.format(Locale.GERMAN, "%.2f", preset.defaultAmount))
     }
     var paymentMethod by remember { mutableStateOf(preset.defaultPaymentMethod) }
+    var feelingEmoji by remember { mutableStateOf<String?>(null) }
     var locationText by remember {
         mutableStateOf(
             if (!currentLocationName.isNullOrBlank() && !currentLocationName.contains("fehlt") && !currentLocationName.contains("ermittelt")) {
@@ -203,6 +206,46 @@ fun QuickAddConfirmDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // 10 Emojis für Kaufempfindungen (sofern nicht Grundnahrungsmittel)
+                if (PurchaseEmotions.shouldAskEmotion(preset.categoryId)) {
+                    Text(
+                        text = "Wie hast du diesen Kauf empfunden?",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(PurchaseEmotions.list) { emotion ->
+                            val isSelected = feelingEmoji == emotion.emoji
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+                                modifier = Modifier.clickable {
+                                    feelingEmoji = if (feelingEmoji == emotion.emoji) null else emotion.emoji
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = emotion.emoji, fontSize = 18.sp)
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = emotion.title,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Zahlungsart
                 Text(
                     text = "Zahlungsmethode",
@@ -230,7 +273,7 @@ fun QuickAddConfirmDialog(
                     val parsed = amountText.replace(",", ".").toDoubleOrNull()
                     if (parsed != null && parsed > 0.0) {
                         val loc = locationText.ifBlank { "Karlsruhe" }
-                        onConfirm(parsed, paymentMethod, loc)
+                        onConfirm(parsed, paymentMethod, loc, feelingEmoji)
                     } else {
                         isError = true
                     }

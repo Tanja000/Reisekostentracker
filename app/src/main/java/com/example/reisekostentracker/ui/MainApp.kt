@@ -268,10 +268,11 @@ fun MainApp(
             categories = categories,
             currentLocationName = lastLocationName,
             onDismiss = { viewModel.closeExpenseDialog() },
-            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName ->
+            onSave = { title, amount, currency, categoryId, tripId, date, notes, paymentMethod, locationName, feelingEmoji ->
                 viewModel.saveExpense(
                     title, amount, currency, categoryId, tripId, date, notes, paymentMethod,
-                    locationName = locationName
+                    locationName = locationName,
+                    feelingEmoji = feelingEmoji
                 )
             }
         )

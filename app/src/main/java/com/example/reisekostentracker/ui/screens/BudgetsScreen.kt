@@ -561,13 +561,14 @@ fun BudgetsScreen(
             preset = preset,
             currentLocationName = lastLocationName,
             onDismiss = { activeQuickAdd = null },
-            onConfirm = { amount, method, location ->
+            onConfirm = { amount, method, location, feelingEmoji ->
                 viewModel.quickAddExpense(
                     title = preset.title,
                     amount = amount,
                     categoryId = preset.categoryId,
                     paymentMethod = method,
-                    customLocation = location
+                    customLocation = location,
+                    feelingEmoji = feelingEmoji
                 )
                 Toast.makeText(
                     context,

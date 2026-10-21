@@ -14,9 +14,13 @@ import android.os.CancellationSignal
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.reisekostentracker.data.AiFrustrationReport
+import com.example.reisekostentracker.data.AiOpportunityInsight
+import com.example.reisekostentracker.data.AndroidAiCoreClient
 import com.example.reisekostentracker.data.ExpenseRepository
 import com.example.reisekostentracker.data.GeoPlace
 import com.example.reisekostentracker.data.GeoPlaceLibrary
+import com.example.reisekostentracker.data.WorldBankApiService
 import com.example.reisekostentracker.model.Expense
 import com.example.reisekostentracker.model.ExpenseCategory
 import com.example.reisekostentracker.model.ExpenseStatistics
@@ -49,6 +53,19 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     val categories: StateFlow<List<ExpenseCategory>> = repository.categories
     val trips: StateFlow<List<Trip>> = repository.trips
 
+    // World Bank API & Android AICore Client Services
+    val worldBankService = WorldBankApiService()
+    val aiCoreClient = AndroidAiCoreClient(application.applicationContext)
+
+    private val _worldBankInflationRate = MutableStateFlow(2.25)
+    val worldBankInflationRate: StateFlow<Double> = _worldBankInflationRate.asStateFlow()
+
+    private val _aiFrustrationReport = MutableStateFlow<AiFrustrationReport?>(null)
+    val aiFrustrationReport: StateFlow<AiFrustrationReport?> = _aiFrustrationReport.asStateFlow()
+
+    private val _aiOpportunityInsights = MutableStateFlow<List<AiOpportunityInsight>>(emptyList())
+    val aiOpportunityInsights: StateFlow<List<AiOpportunityInsight>> = _aiOpportunityInsights.asStateFlow()
+
     // Dark Mode state
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("dark_mode", false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
@@ -78,6 +95,28 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     init {
         if (_hasLocationConsent.value) {
             fetchCurrentLocation()
+        }
+        viewModelScope.launch {
+            val rate = worldBankService.getGermanyInflationRate()
+            _worldBankInflationRate.value = rate
+            refreshAiInsights(expenses.value, rate)
+        }
+        viewModelScope.launch {
+            expenses.collect { list ->
+                refreshAiInsights(list, _worldBankInflationRate.value)
+            }
+        }
+    }
+
+    fun refreshAiInsights(
+        list: List<Expense> = expenses.value,
+        rate: Double = _worldBankInflationRate.value
+    ) {
+        viewModelScope.launch {
+            val report = aiCoreClient.analyzeFrustrationPurchases(list)
+            _aiFrustrationReport.value = report
+            val opps = aiCoreClient.generateCreativeOpportunitySentences(list, rate, worldBankService)
+            _aiOpportunityInsights.value = opps
         }
     }
 
@@ -206,7 +245,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         amount: Double,
         categoryId: String,
         paymentMethod: String,
-        customLocation: String? = null
+        customLocation: String? = null,
+        feelingEmoji: String? = null
     ) {
         viewModelScope.launch {
             val app = getApplication<Application>()
@@ -224,6 +264,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
 
+            val finalEmoji = if (com.example.reisekostentracker.model.PurchaseEmotions.shouldAskEmotion(categoryId)) feelingEmoji else null
+
             repository.addExpense(
                 title = title,
                 amount = amount,
@@ -235,7 +277,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 paymentMethod = paymentMethod,
                 latitude = resolvedPlace.latitude,
                 longitude = resolvedPlace.longitude,
-                locationName = resolvedPlace.name
+                locationName = resolvedPlace.name,
+                feelingEmoji = finalEmoji
             )
         }
     }
@@ -386,7 +429,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         paymentMethod: String,
         latitude: Double? = null,
         longitude: Double? = null,
-        locationName: String? = null
+        locationName: String? = null,
+        feelingEmoji: String? = null
     ) {
         viewModelScope.launch {
             val app = getApplication<Application>()
@@ -399,6 +443,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             } else {
                 GeoPlaceLibrary.resolveLocation(rawName, app)
             }
+
+            val finalEmoji = if (com.example.reisekostentracker.model.PurchaseEmotions.shouldAskEmotion(categoryId)) feelingEmoji else null
 
             if (current != null) {
                 repository.updateExpense(
@@ -413,7 +459,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                         paymentMethod = paymentMethod,
                         latitude = resolved.latitude,
                         longitude = resolved.longitude,
-                        locationName = resolved.name
+                        locationName = resolved.name,
+                        feelingEmoji = finalEmoji
                     )
                 )
             } else {
@@ -428,7 +475,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                     paymentMethod = paymentMethod,
                     latitude = resolved.latitude,
                     longitude = resolved.longitude,
-                    locationName = resolved.name
+                    locationName = resolved.name,
+                    feelingEmoji = finalEmoji
                 )
             }
             closeExpenseDialog()

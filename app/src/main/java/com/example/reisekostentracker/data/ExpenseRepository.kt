@@ -45,18 +45,19 @@ class ExpenseRepository(context: Context) {
         }
 
         val demoList = listOf(
-            Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(0, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz"),
-            Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(0, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro"),
-            Expense(UUID.randomUUID().toString(), "Miete & Nebenkosten", 850.00, "EUR", "cat_wohnen", null, daysAgo(1, 8), "Monatsüberweisung", "Online", 48.1400, 11.5650, "Wohnung"),
-            Expense(UUID.randomUUID().toString(), "Tanken Aral Super E10", 56.80, "EUR", "cat_transport", null, daysAgo(2, 17), "42 Liter Benzin", "Karte", 48.1650, 11.5950, "Aral Tankstelle"),
-            Expense(UUID.randomUUID().toString(), "Fitnessstudio Monatsbeitrag", 35.00, "EUR", "cat_abos", null, daysAgo(3, 9), "FitX Mitgliedschaft", "Online", 48.1300, 11.5900, "Gym Studio"),
-            Expense(UUID.randomUUID().toString(), "Netflix & Spotify Abos", 22.98, "EUR", "cat_abos", null, daysAgo(4, 10), "Streaming Dienste", "Online", 48.1400, 11.5700, "Online"),
-            Expense(UUID.randomUUID().toString(), "Neue Sneaker H&M", 79.95, "EUR", "cat_shopping", null, daysAgo(5, 15), "Schuhe & Shirt", "Karte", 48.1380, 11.5730, "Kaufingerstraße"),
-            Expense(UUID.randomUUID().toString(), "Kino & Popcorn am Abend", 24.50, "EUR", "cat_freizeit", null, daysAgo(7, 20), "Cinema Preview", "Karte", 48.1450, 11.5620, "Filmpalast"),
-            Expense(UUID.randomUUID().toString(), "Apotheke Schmerzmittel", 12.80, "EUR", "cat_gesundheit", null, daysAgo(10, 11), "Ibuprofen & Pflaster", "Bar", 48.1360, 11.5760, "Apotheke am Markt"),
-            Expense(UUID.randomUUID().toString(), "Wochenmarkt frisches Obst", 15.20, "EUR", "cat_lebensmittel", null, daysAgo(12, 10), "Äpfel, Beeren & Nüsse", "Bar", 48.1351, 11.5761, "Viktualienmarkt"),
-            Expense(UUID.randomUUID().toString(), "Stromabschlag Stadtwerke", 65.00, "EUR", "cat_wohnen", null, daysAgo(15, 8), "Monatlicher Abschlag", "Online", 48.1370, 11.5780, "Stadtwerke München"),
-            Expense(UUID.randomUUID().toString(), "Kaffee & Croissant Bäckerei", 4.80, "EUR", "cat_gastronomie", null, daysAgo(18, 9), "Frühstück to go", "Bar", 48.1370, 11.5750, "Bäckerei Müller")
+            Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(0, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz", feelingEmoji = null),
+            Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(0, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro", feelingEmoji = "😊"),
+            Expense(UUID.randomUUID().toString(), "Miete & Nebenkosten", 850.00, "EUR", "cat_wohnen", null, daysAgo(1, 8), "Monatsüberweisung", "Online", 48.1400, 11.5650, "Wohnung", feelingEmoji = null),
+            Expense(UUID.randomUUID().toString(), "Tanken Aral Super E10", 56.80, "EUR", "cat_transport", null, daysAgo(2, 17), "42 Liter Benzin", "Karte", 48.1650, 11.5950, "Aral Tankstelle", feelingEmoji = "💸"),
+            Expense(UUID.randomUUID().toString(), "Fitnessstudio Monatsbeitrag", 35.00, "EUR", "cat_abos", null, daysAgo(3, 9), "FitX Mitgliedschaft", "Online", 48.1300, 11.5900, "Gym Studio", feelingEmoji = "😊"),
+            Expense(UUID.randomUUID().toString(), "Netflix & Spotify Abos", 22.98, "EUR", "cat_abos", null, daysAgo(4, 10), "Streaming Dienste", "Online", 48.1400, 11.5700, "Online", feelingEmoji = "🥱"),
+            Expense(UUID.randomUUID().toString(), "Neue Sneaker H&M", 79.95, "EUR", "cat_shopping", null, daysAgo(5, 15), "Schuhe & Shirt", "Karte", 48.1380, 11.5730, "Kaufingerstraße", feelingEmoji = "⚡"),
+            Expense(UUID.randomUUID().toString(), "Kino & Popcorn am Abend", 24.50, "EUR", "cat_freizeit", null, daysAgo(7, 20), "Cinema Preview", "Karte", 48.1450, 11.5620, "Filmpalast", feelingEmoji = "🥳"),
+            Expense(UUID.randomUUID().toString(), "Apotheke Schmerzmittel", 12.80, "EUR", "cat_gesundheit", null, daysAgo(10, 11), "Ibuprofen & Pflaster", "Bar", 48.1360, 11.5760, "Apotheke am Markt", feelingEmoji = "🤔"),
+            Expense(UUID.randomUUID().toString(), "Wochenmarkt frisches Obst", 15.20, "EUR", "cat_lebensmittel", null, daysAgo(12, 10), "Äpfel, Beeren & Nüsse", "Bar", 48.1351, 11.5761, "Viktualienmarkt", feelingEmoji = null),
+            Expense(UUID.randomUUID().toString(), "Stromabschlag Stadtwerke", 65.00, "EUR", "cat_wohnen", null, daysAgo(15, 8), "Monatlicher Abschlag", "Online", 48.1370, 11.5780, "Stadtwerke München", feelingEmoji = null),
+            Expense(UUID.randomUUID().toString(), "Kaffee & Croissant Bäckerei", 4.80, "EUR", "cat_gastronomie", null, daysAgo(18, 9), "Frühstück to go", "Bar", 48.1370, 11.5750, "Bäckerei Müller", feelingEmoji = "☕"),
+            Expense(UUID.randomUUID().toString(), "Online Frust-Bestellung Deko", 42.00, "EUR", "cat_shopping", null, daysAgo(6, 22), "Spontankauf nachts", "Online", 48.1390, 11.5740, "Online Store", feelingEmoji = "🤦")
         )
         demoList.forEach { dbHelper.insertExpense(it) }
     }
@@ -121,7 +122,8 @@ class ExpenseRepository(context: Context) {
         paymentMethod: String = "Karte",
         latitude: Double? = null,
         longitude: Double? = null,
-        locationName: String? = null
+        locationName: String? = null,
+        feelingEmoji: String? = null
     ) {
         val expense = Expense(
             id = UUID.randomUUID().toString(),
@@ -135,7 +137,8 @@ class ExpenseRepository(context: Context) {
             paymentMethod = paymentMethod,
             latitude = latitude,
             longitude = longitude,
-            locationName = locationName
+            locationName = locationName,
+            feelingEmoji = feelingEmoji
         )
         scope.launch {
             dbHelper.insertExpense(expense)
@@ -245,18 +248,19 @@ class ExpenseRepository(context: Context) {
             }
 
             val demoList = listOf(
-                Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(0, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz"),
-                Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(0, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro"),
-                Expense(UUID.randomUUID().toString(), "Miete & Nebenkosten", 850.00, "EUR", "cat_wohnen", null, daysAgo(1, 8), "Monatsüberweisung", "Online", 48.1400, 11.5650, "Wohnung"),
-                Expense(UUID.randomUUID().toString(), "Tanken Aral Super E10", 56.80, "EUR", "cat_transport", null, daysAgo(2, 17), "42 Liter Benzin", "Karte", 48.1650, 11.5950, "Aral Tankstelle"),
-                Expense(UUID.randomUUID().toString(), "Fitnessstudio Monatsbeitrag", 35.00, "EUR", "cat_abos", null, daysAgo(3, 9), "FitX Mitgliedschaft", "Online", 48.1300, 11.5900, "Gym Studio"),
-                Expense(UUID.randomUUID().toString(), "Netflix & Spotify Abos", 22.98, "EUR", "cat_abos", null, daysAgo(4, 10), "Streaming Dienste", "Online", 48.1400, 11.5700, "Online"),
-                Expense(UUID.randomUUID().toString(), "Neue Sneaker H&M", 79.95, "EUR", "cat_shopping", null, daysAgo(5, 15), "Schuhe & Shirt", "Karte", 48.1380, 11.5730, "Kaufingerstraße"),
-                Expense(UUID.randomUUID().toString(), "Kino & Popcorn am Abend", 24.50, "EUR", "cat_freizeit", null, daysAgo(7, 20), "Cinema Preview", "Karte", 48.1450, 11.5620, "Filmpalast"),
-                Expense(UUID.randomUUID().toString(), "Apotheke Schmerzmittel", 12.80, "EUR", "cat_gesundheit", null, daysAgo(10, 11), "Ibuprofen & Pflaster", "Bar", 48.1360, 11.5760, "Apotheke am Markt"),
-                Expense(UUID.randomUUID().toString(), "Wochenmarkt frisches Obst", 15.20, "EUR", "cat_lebensmittel", null, daysAgo(12, 10), "Äpfel, Beeren & Nüsse", "Bar", 48.1351, 11.5761, "Viktualienmarkt"),
-                Expense(UUID.randomUUID().toString(), "Stromabschlag Stadtwerke", 65.00, "EUR", "cat_wohnen", null, daysAgo(15, 8), "Monatlicher Abschlag", "Online", 48.1370, 11.5780, "Stadtwerke München"),
-                Expense(UUID.randomUUID().toString(), "Kaffee & Croissant Bäckerei", 4.80, "EUR", "cat_gastronomie", null, daysAgo(18, 9), "Frühstück to go", "Bar", 48.1370, 11.5750, "Bäckerei Müller")
+                Expense(UUID.randomUUID().toString(), "Wocheneinkauf REWE", 68.40, "EUR", "cat_lebensmittel", null, daysAgo(0, 11), "Obst, Gemüse, Milch & Vorrat", "Karte", 48.1375, 11.5750, "München Marienplatz", feelingEmoji = null),
+                Expense(UUID.randomUUID().toString(), "Mittagessen Trattoria", 14.50, "EUR", "cat_gastronomie", null, daysAgo(0, 13), "Pizza & Espresso", "Bar", 48.1360, 11.5770, "Trattoria Centro", feelingEmoji = "😊"),
+                Expense(UUID.randomUUID().toString(), "Miete & Nebenkosten", 850.00, "EUR", "cat_wohnen", null, daysAgo(1, 8), "Monatsüberweisung", "Online", 48.1400, 11.5650, "Wohnung", feelingEmoji = null),
+                Expense(UUID.randomUUID().toString(), "Tanken Aral Super E10", 56.80, "EUR", "cat_transport", null, daysAgo(2, 17), "42 Liter Benzin", "Karte", 48.1650, 11.5950, "Aral Tankstelle", feelingEmoji = "💸"),
+                Expense(UUID.randomUUID().toString(), "Fitnessstudio Monatsbeitrag", 35.00, "EUR", "cat_abos", null, daysAgo(3, 9), "FitX Mitgliedschaft", "Online", 48.1300, 11.5900, "Gym Studio", feelingEmoji = "😊"),
+                Expense(UUID.randomUUID().toString(), "Netflix & Spotify Abos", 22.98, "EUR", "cat_abos", null, daysAgo(4, 10), "Streaming Dienste", "Online", 48.1400, 11.5700, "Online", feelingEmoji = "🥱"),
+                Expense(UUID.randomUUID().toString(), "Neue Sneaker H&M", 79.95, "EUR", "cat_shopping", null, daysAgo(5, 15), "Schuhe & Shirt", "Karte", 48.1380, 11.5730, "Kaufingerstraße", feelingEmoji = "⚡"),
+                Expense(UUID.randomUUID().toString(), "Kino & Popcorn am Abend", 24.50, "EUR", "cat_freizeit", null, daysAgo(7, 20), "Cinema Preview", "Karte", 48.1450, 11.5620, "Filmpalast", feelingEmoji = "🥳"),
+                Expense(UUID.randomUUID().toString(), "Apotheke Schmerzmittel", 12.80, "EUR", "cat_gesundheit", null, daysAgo(10, 11), "Ibuprofen & Pflaster", "Bar", 48.1360, 11.5760, "Apotheke am Markt", feelingEmoji = "🤔"),
+                Expense(UUID.randomUUID().toString(), "Wochenmarkt frisches Obst", 15.20, "EUR", "cat_lebensmittel", null, daysAgo(12, 10), "Äpfel, Beeren & Nüsse", "Bar", 48.1351, 11.5761, "Viktualienmarkt", feelingEmoji = null),
+                Expense(UUID.randomUUID().toString(), "Stromabschlag Stadtwerke", 65.00, "EUR", "cat_wohnen", null, daysAgo(15, 8), "Monatlicher Abschlag", "Online", 48.1370, 11.5780, "Stadtwerke München", feelingEmoji = null),
+                Expense(UUID.randomUUID().toString(), "Kaffee & Croissant Bäckerei", 4.80, "EUR", "cat_gastronomie", null, daysAgo(18, 9), "Frühstück to go", "Bar", 48.1370, 11.5750, "Bäckerei Müller", feelingEmoji = "☕"),
+                Expense(UUID.randomUUID().toString(), "Online Frust-Bestellung Deko", 42.00, "EUR", "cat_shopping", null, daysAgo(6, 22), "Spontankauf nachts", "Online", 48.1390, 11.5740, "Online Store", feelingEmoji = "🤦")
             )
 
             demoList.forEach { dbHelper.insertExpense(it) }

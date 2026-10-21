@@ -13,7 +13,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
 
     companion object {
         const val DATABASE_NAME = "reisekosten.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
 
         // Table Categories
         const val TABLE_CATEGORIES = "categories"
@@ -48,6 +48,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         const val COL_EXP_LAT = "latitude"
         const val COL_EXP_LNG = "longitude"
         const val COL_EXP_LOC_NAME = "location_name"
+        const val COL_EXP_FEELING = "feeling_emoji"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -92,7 +93,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                 $COL_EXP_PAYMENT_METHOD TEXT NOT NULL DEFAULT 'Karte',
                 $COL_EXP_LAT REAL,
                 $COL_EXP_LNG REAL,
-                $COL_EXP_LOC_NAME TEXT
+                $COL_EXP_LOC_NAME TEXT,
+                $COL_EXP_FEELING TEXT
             )
             """.trimIndent()
         )
@@ -115,6 +117,9 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             db.execSQL("ALTER TABLE $TABLE_EXPENSES ADD COLUMN $COL_EXP_LAT REAL")
             db.execSQL("ALTER TABLE $TABLE_EXPENSES ADD COLUMN $COL_EXP_LNG REAL")
             db.execSQL("ALTER TABLE $TABLE_EXPENSES ADD COLUMN $COL_EXP_LOC_NAME TEXT")
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE $TABLE_EXPENSES ADD COLUMN $COL_EXP_FEELING TEXT")
         }
     }
 
@@ -235,10 +240,12 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                 val latIndex = it.getColumnIndexOrThrow(COL_EXP_LAT)
                 val lngIndex = it.getColumnIndexOrThrow(COL_EXP_LNG)
                 val locIndex = it.getColumnIndexOrThrow(COL_EXP_LOC_NAME)
+                val feelingIndex = it.getColumnIndex(COL_EXP_FEELING)
 
                 val lat = if (it.isNull(latIndex)) null else it.getDouble(latIndex)
                 val lng = if (it.isNull(lngIndex)) null else it.getDouble(lngIndex)
                 val locName = if (it.isNull(locIndex)) null else it.getString(locIndex)
+                val feeling = if (feelingIndex >= 0 && !it.isNull(feelingIndex)) it.getString(feelingIndex) else null
 
                 list.add(
                     Expense(
@@ -253,7 +260,8 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
                         paymentMethod = it.getString(it.getColumnIndexOrThrow(COL_EXP_PAYMENT_METHOD)) ?: "Karte",
                         latitude = lat,
                         longitude = lng,
-                        locationName = locName
+                        locationName = locName,
+                        feelingEmoji = feeling
                     )
                 )
             }
@@ -276,6 +284,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             put(COL_EXP_LAT, expense.latitude)
             put(COL_EXP_LNG, expense.longitude)
             put(COL_EXP_LOC_NAME, expense.locationName)
+            put(COL_EXP_FEELING, expense.feelingEmoji)
         }
         db.insertWithOnConflict(TABLE_EXPENSES, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -294,6 +303,7 @@ class TravelExpenseDbHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             put(COL_EXP_LAT, expense.latitude)
             put(COL_EXP_LNG, expense.longitude)
             put(COL_EXP_LOC_NAME, expense.locationName)
+            put(COL_EXP_FEELING, expense.feelingEmoji)
         }
         db.update(TABLE_EXPENSES, values, "$COL_EXP_ID = ?", arrayOf(expense.id))
     }
