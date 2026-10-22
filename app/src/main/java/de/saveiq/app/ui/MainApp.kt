@@ -69,6 +69,7 @@ import de.saveiq.app.model.AppLanguage
 import de.saveiq.app.model.AppStrings
 import de.saveiq.app.ui.components.AddEditCategoryDialog
 import de.saveiq.app.ui.components.AddEditExpenseDialog
+import de.saveiq.app.ui.components.SaveIQAppIcon
 import de.saveiq.app.ui.screens.AiSavingsScreen
 import de.saveiq.app.ui.screens.BudgetsScreen
 import de.saveiq.app.ui.screens.CategoriesScreen
@@ -154,20 +155,7 @@ fun MainApp(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(30.dp)
-                        ) {
-                            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
+                        SaveIQAppIcon(size = 32.dp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "SaveIQ",
@@ -421,12 +409,7 @@ fun MainApp(
         AlertDialog(
             onDismissRequest = { showPrivacyPolicyDialog = false },
             icon = {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
+                SaveIQAppIcon(size = 42.dp)
             },
             title = {
                 Text(

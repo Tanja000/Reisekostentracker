@@ -1,5 +1,6 @@
 package de.saveiq.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -91,10 +92,29 @@ fun MapScreen(
         expenses.filter { it.latitude != null && it.longitude != null }
     }
 
-    val displayedExpenses = expensesWithLocation
+    var selectedExpense by remember { mutableStateOf<Expense?>(null) }
+    var mapLibreInstance by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
 
-    val sortedByCost = remember(displayedExpenses) {
-        displayedExpenses.sortedByDescending { it.amount }
+    // Keep selectedExpense synchronized if the list changes
+    LaunchedEffect(expensesWithLocation) {
+        if (selectedExpense != null && expensesWithLocation.none { it.id == selectedExpense?.id }) {
+            selectedExpense = null
+        }
+    }
+
+    // When an expense is selected, only show that single expense on the map
+    val displayedExpenses = remember(expensesWithLocation, selectedExpense) {
+        val sel = selectedExpense
+        if (sel != null && sel.latitude != null && sel.longitude != null) {
+            listOf(sel)
+        } else {
+            expensesWithLocation
+        }
+    }
+
+    // Always list all expenses with location in the ranking so clicking again toggles back to all
+    val sortedByCost = remember(expensesWithLocation) {
+        expensesWithLocation.sortedByDescending { it.amount }
     }
 
     // Hotspot grouping by Location Name
@@ -103,16 +123,12 @@ fun MapScreen(
             .groupBy { it.locationName?.trim().takeUnless { s -> s.isNullOrEmpty() } ?: (if (isEn) "Unknown Location" else "Unbekannter Ort") }
             .map { (locName, list) ->
                 val total = list.sumOf { it.amount }
-                val count = list.size
                 val firstWithCoord = list.first()
                 Triple(locName, total, firstWithCoord)
             }
             .sortedByDescending { it.second }
             .take(5)
     }
-
-    var selectedExpense by remember { mutableStateOf<Expense?>(null) }
-    var mapLibreInstance by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
 
     val currencyFormat = remember(isEn) {
         NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
@@ -122,7 +138,7 @@ fun MapScreen(
     }
     val dateFormat = remember(isEn) { SimpleDateFormat(if (isEn) "MMM dd, yyyy" else "dd. MMM yyyy", if (isEn) Locale.US else Locale.GERMAN) }
 
-    LaunchedEffect(displayedExpenses, mapLibreInstance) {
+    LaunchedEffect(displayedExpenses, selectedExpense, mapLibreInstance) {
         val map = mapLibreInstance ?: return@LaunchedEffect
         map.clear()
         displayedExpenses.forEach { exp ->
@@ -134,16 +150,40 @@ fun MapScreen(
                     .icon(createPriceBadgeIcon(exp.amount, context))
             )
         }
-        if (displayedExpenses.isNotEmpty()) {
+        val sel = selectedExpense
+        if (sel != null && sel.latitude != null && sel.longitude != null) {
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(sel.latitude, sel.longitude),
+                    15.0
+                )
+            )
+        } else if (displayedExpenses.size == 1) {
+            val single = displayedExpenses.first()
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(single.latitude!!, single.longitude!!),
+                    13.5
+                )
+            )
+        } else if (displayedExpenses.size > 1) {
             try {
                 val boundsBuilder = LatLngBounds.Builder()
                 displayedExpenses.forEach {
                     boundsBuilder.include(LatLng(it.latitude!!, it.longitude!!))
                 }
                 map.animateCamera(
-                    CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 40)
+                    CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 55)
                 )
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                val first = displayedExpenses.first()
+                map.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(first.latitude!!, first.longitude!!),
+                        13.0
+                    )
+                )
+            }
         }
     }
 
@@ -254,14 +294,12 @@ fun MapScreen(
                                         }
                                     }
                                     mapLibreMap.setOnMarkerClickListener { marker ->
-                                        val match = displayedExpenses.find { it.title == marker.title }
-                                        selectedExpense = match
-                                        mapLibreMap.animateCamera(
-                                            CameraUpdateFactory.newLatLngZoom(
-                                                marker.position,
-                                                14.5
-                                            )
-                                        )
+                                        val match = expensesWithLocation.find {
+                                            it.title == marker.title &&
+                                                it.latitude == marker.position.latitude &&
+                                                it.longitude == marker.position.longitude
+                                        } ?: expensesWithLocation.find { it.title == marker.title }
+                                        selectedExpense = if (selectedExpense?.id == match?.id) null else match
                                         false
                                     }
                                 }
@@ -369,21 +407,26 @@ fun MapScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(locationHotspots) { (name, total, sampleExp) ->
+                            val isHotspotSelected = selectedExpense?.id == sampleExp.id
                             Card(
                                 modifier = Modifier
                                     .clickable {
-                                        if (sampleExp.latitude != null && sampleExp.longitude != null) {
-                                            mapLibreInstance?.animateCamera(
-                                                CameraUpdateFactory.newLatLngZoom(
-                                                    LatLng(sampleExp.latitude, sampleExp.longitude),
-                                                    13.0
-                                                )
-                                            )
-                                        }
+                                        selectedExpense = if (isHotspotSelected) null else sampleExp
                                     },
                                 shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isHotspotSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                                ),
+                                elevation = CardDefaults.cardElevation(0.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (total > 200.0) Color(0xFFFEF2F2) else MaterialTheme.colorScheme.surfaceVariant
+                                    containerColor = if (isHotspotSelected)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+                                    else if (total > 200.0)
+                                        Color(0xFFDC2626).copy(alpha = 0.1f)
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                                 )
                             ) {
                                 Row(
@@ -402,7 +445,7 @@ fun MapScreen(
                                             text = name,
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = if (total > 200.0) Color(0xFF991B1B) else MaterialTheme.colorScheme.onSurface
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "${currencyFormat.format(total)} €",
@@ -420,34 +463,56 @@ fun MapScreen(
         }
 
         item {
-            Text(
-                text = if (isEn) "All Locations & Expense Ranking" else "Alle Orte & Ausgaben-Rangliste",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isEn) "All Locations & Expense Ranking" else "Alle Orte & Ausgaben-Rangliste",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (selectedExpense != null) {
+                    Surface(
+                        modifier = Modifier.clickable { selectedExpense = null },
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = if (isEn) "Show all pins" else "Alle anzeigen",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
         }
 
         items(sortedByCost) { exp ->
+            val isItemSelected = selectedExpense?.id == exp.id
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        selectedExpense = exp
-                        if (exp.latitude != null && exp.longitude != null) {
-                            mapLibreInstance?.animateCamera(
-                                CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(exp.latitude, exp.longitude),
-                                    14.5
-                                )
-                            )
-                        }
+                        selectedExpense = if (isItemSelected) null else exp
                     },
                 shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(
+                    width = if (isItemSelected) 1.5.dp else 1.dp,
+                    color = if (isItemSelected)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                ),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (selectedExpense?.id == exp.id)
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    containerColor = if (isItemSelected)
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 )
             ) {
                 Row(

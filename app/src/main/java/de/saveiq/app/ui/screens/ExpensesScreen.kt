@@ -1,6 +1,7 @@
 package de.saveiq.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -148,9 +149,11 @@ fun ExpensesScreen(
                 val totalSum = expenses.sumOf { it.amount }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
                     )
                 ) {
                     Row(
@@ -383,8 +386,10 @@ fun ExpensesScreen(
                                 .height(78.dp)
                                 .clickable { viewModel.openEditExpenseDialog(expense) },
                             shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(0.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
                             )
                         ) {
                             Row(

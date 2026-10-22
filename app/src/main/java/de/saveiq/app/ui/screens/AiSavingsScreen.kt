@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.TrendingUp
@@ -44,7 +44,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import de.saveiq.app.model.AppLanguage
 import de.saveiq.app.model.AppStrings
 import de.saveiq.app.model.PurchaseEmotions
+import de.saveiq.app.ui.components.SaveIQAppIcon
 import de.saveiq.app.ui.viewmodel.ExpenseViewModel
 import de.saveiq.app.ui.viewmodel.TimeFilter
 import java.text.NumberFormat
@@ -169,7 +169,7 @@ fun AiSavingsScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // TOP HEADER (Ohne AI-Core Zeichen)
         item {
@@ -215,11 +215,12 @@ fun AiSavingsScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
                 ),
-                elevation = CardDefaults.cardElevation(2.dp)
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
             ) {
                 Column(
                     modifier = Modifier
@@ -232,7 +233,7 @@ fun AiSavingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "🦊", fontSize = 24.sp)
+                            SaveIQAppIcon(size = 36.dp)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
@@ -244,7 +245,7 @@ fun AiSavingsScreen(
                                     text = if (consciousPercentage >= 85) (if (isEn) "Master Saver" else "Meister-Sparfuchs")
                                     else (if (consciousPercentage >= 70) (if (isEn) "Mindful Spender" else "Bewusster Genießer") else (if (isEn) "Impulse Explorer" else "Impulsiver Entdecker")),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
@@ -252,19 +253,20 @@ fun AiSavingsScreen(
 
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                         ) {
                             Text(
                                 text = "$consciousPercentage % ${if (isEn) "Mindful" else "Bewusst"}",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = FontWeight.Bold,
                                 color = if (consciousPercentage >= 80) Color(0xFF16A34A) else Color(0xFFD97706)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -274,7 +276,8 @@ fun AiSavingsScreen(
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
@@ -286,7 +289,7 @@ fun AiSavingsScreen(
                                 Text(
                                     text = "${currencyFormat.format(totalFrustrationAmount)} €",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = if (totalFrustrationAmount > 0) Color(0xFFDC2626) else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
@@ -301,7 +304,8 @@ fun AiSavingsScreen(
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
@@ -314,7 +318,7 @@ fun AiSavingsScreen(
                                 Text(
                                     text = "≈ ${wholeNumberFormat.format(compound30Years)} €",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = Color(0xFF16A34A)
                                 )
                                 Text(
@@ -329,15 +333,16 @@ fun AiSavingsScreen(
             }
         }
 
-        // LEBENSZEIT- & ARBEITSSTUNDEN-RECHNER
+        // LEBENSZEIT- & ARBEITSSTUNDEN-RECHNER (Modern, sauber gerahmt & dezente Schriftgrößen)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                 ),
-                elevation = CardDefaults.cardElevation(1.dp)
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
             ) {
                 Column(
                     modifier = Modifier
@@ -345,110 +350,150 @@ fun AiSavingsScreen(
                         .padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.WorkHistory,
-                            contentDescription = null,
-                            tint = Color(0xFFD97706),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isEn) "Life Energy & Work Hours Calculator" else "Lebenszeit- & Arbeitsrechner",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = if (isEn) "How many work hours did impulse purchases cost you? Select net hourly wage:"
-                        else "Wie viele Arbeitsstunden kosten deine Frustkäufe? Wähle deinen Nettostundenlohn:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Wage Chips - schön abgerundet und gut lesbar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        listOf(15.0, 20.0, 25.0, 35.0).forEach { wage ->
-                            val isSelected = hourlyWage == wage
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.surface)
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isSelected) Color(0xFFD97706) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable { hourlyWage = wage }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${wage.toInt()} €/h",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFD97706).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.WorkHistory,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = if (isEn) "Life Energy & Work Hours" else "Lebenszeit- & Arbeitsrechner",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (isEn) "How many work hours did impulse buys cost? Select net wage:"
+                                else "Arbeitszeit deiner Frustkäufe • Wähle Nettostundenlohn:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    val workHoursLost = if (hourlyWage > 0) totalFrustrationAmount / hourlyWage else 0.0
-                    val workDaysLost = workHoursLost / 8.0
-
-                    // Großzügiges, wunderschön abgerundetes weißes Ergebnisfenster mit viel Platz
+                    // Sauber gerahmte Segment-Auswahl für den Stundenlohn
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 2.dp,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 18.dp, vertical = 18.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Column {
+                            listOf(15.0, 20.0, 25.0, 35.0).forEach { wage ->
+                                val isSelected = hourlyWage == wage
+                                val bgColor by animateColorAsState(
+                                    if (isSelected) Color(0xFFD97706) else Color.Transparent,
+                                    label = "wageBg"
+                                )
+                                val textColor by animateColorAsState(
+                                    if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    label = "wageText"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(bgColor)
+                                        .clickable { hourlyWage = wage }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${wage.toInt()} €/h",
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = textColor
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val workHoursLost = if (hourlyWage > 0) totalFrustrationAmount / hourlyWage else 0.0
+                    val workDaysLost = workHoursLost / 8.0
+
+                    // Zwei symmetrische, sauber gerahmte Kacheln (passend zum Spar-Status oben)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = if (isEn) "Lost Work Time:" else "Verlorene Arbeitszeit:",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
+                                    text = if (isEn) "Lost Work Time" else "Verlorene Arbeitszeit",
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "%.1f Hours" else "%.1f Stunden", workHoursLost),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFDC2626)
+                                    text = String.format(
+                                        if (isEn) Locale.US else Locale.GERMANY,
+                                        if (isEn) "%.1f Hours" else "%.1f Stunden",
+                                        workHoursLost
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (workHoursLost > 0) Color(0xFFDC2626) else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (isEn) "From impulse buys" else "Durch Frustkäufe",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.outline
                                 )
                             }
+                        }
 
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFFFEE2E2)
-                            ) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = String.format(if (isEn) Locale.US else Locale.GERMANY, if (isEn) "≈ %.1f Work Days" else "≈ %.1f Arbeitstage", workDaysLost),
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFDC2626)
+                                    text = if (isEn) "Work Days (8h)" else "Arbeitstage (8h)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = String.format(
+                                        if (isEn) Locale.US else Locale.GERMANY,
+                                        if (isEn) "≈ %.1f Days" else "≈ %.1f Tage",
+                                        workDaysLost
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFD97706)
+                                )
+                                Text(
+                                    text = if (isEn) "At ${hourlyWage.toInt()} €/h net" else "Bei ${hourlyWage.toInt()} €/h Netto",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.outline
                                 )
                             }
                         }
@@ -457,105 +502,104 @@ fun AiSavingsScreen(
             }
         }
 
-        // INTERAKTIVER WAS-WÄRE-WENN CALCULATOR (Saubere Überschrift & Inflation getrennt!)
+        // INTERAKTIVER WAS-WÄRE-WENN CALCULATOR (Modern, sauber gerahmt & dezente Schriftgrößen)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                 ),
-                elevation = CardDefaults.cardElevation(1.dp)
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    // Headline mit separater Zeile für Inflation (Keine Überdeckung mehr!)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.TrendingUp,
-                            contentDescription = null,
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = AppStrings.compoundInterestTitle(currentLanguage),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFE0F2FE)
-                    ) {
-                        Text(
-                            text = "${AppStrings.worldBankInflation(worldBankInflationRate, currentLanguage)} (${if (isEn) "Live updated" else "Live aktualisiert"})",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0369A1)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = if (isEn) "Choose your monthly savings from impulse avoidance:"
-                        else "Wähle deinen monatlichen Sparbetrag aus Frustkauf-Vermeidung:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Savings Pills - schön abgerundet mit gutem Klickgefühl
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        listOf(25, 50, 100, 200).forEach { amount ->
-                            val isSelected = selectedMonthlySavings == amount
-                            val bgColor by animateColorAsState(
-                                if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.surface,
-                                label = "chipBg"
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF0284C7).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.TrendingUp,
+                                contentDescription = null,
+                                tint = Color(0xFF0284C7),
+                                modifier = Modifier.size(18.dp)
                             )
-                            val textColor by animateColorAsState(
-                                if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                                label = "chipText"
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = AppStrings.compoundInterestTitle(currentLanguage),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                            Text(
+                                text = "${AppStrings.worldBankInflation(worldBankInflationRate, currentLanguage)} • ${if (isEn) "Monthly savings:" else "Monatlicher Sparbetrag:"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(bgColor)
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isSelected) Color(0xFF0284C7) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable { selectedMonthlySavings = amount }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "$amount €",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = textColor
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Sauber gerahmte Segment-Auswahl für den monatlichen Sparbetrag
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            listOf(25, 50, 100, 200).forEach { amount ->
+                                val isSelected = selectedMonthlySavings == amount
+                                val bgColor by animateColorAsState(
+                                    if (isSelected) Color(0xFF0284C7) else Color.Transparent,
+                                    label = "chipBg"
                                 )
+                                val textColor by animateColorAsState(
+                                    if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    label = "chipText"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(bgColor)
+                                        .clickable { selectedMonthlySavings = amount }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "$amount €",
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = textColor
+                                    )
+                                }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Results Box with Fun Milestone
                     val r = 0.07 / 12.0
                     val months10 = 120
                     val months25 = 300
@@ -578,76 +622,81 @@ fun AiSavingsScreen(
                         }
                     }
 
-                    // Großzügiges, wunderschön abgerundetes weißes Ergebnisfenster mit viel Platz
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 2.dp,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                    // Zwei symmetrische, sauber gerahmte Kacheln (passend zum Rest der App)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp)
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = if (isEn) "In 10 years:" else "In 10 Jahren:",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.outline
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "≈ ${wholeNumberFormat.format(future10)} €",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = if (isEn) "In 25 years:" else "In 25 Jahren:",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.outline
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "≈ ${wholeNumberFormat.format(future25)} €",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF16A34A)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFF0284C7).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 12.dp, vertical = 9.dp)
-                            ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = milestoneReward,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    text = if (isEn) "In 10 years" else "In 10 Jahren",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "≈ ${wholeNumberFormat.format(future10)} €",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF0284C7)
                                 )
+                                Text(
+                                    text = if (isEn) "At 7% return p.a." else "Bei 7 % Rendite p.a.",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.outline
+                                )
                             }
                         }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = if (isEn) "In 25 years" else "In 25 Jahren",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "≈ ${wholeNumberFormat.format(future25)} €",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF16A34A)
+                                )
+                                Text(
+                                    text = if (isEn) "Compound growth" else "Mit Zinseszins-Effekt",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = milestoneReward,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -659,9 +708,10 @@ fun AiSavingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF8FAFC)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                 ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
             ) {
                 Column(
                     modifier = Modifier
@@ -685,7 +735,7 @@ fun AiSavingsScreen(
                                 text = if (isEn) "AI Spark of Thought" else "KI-Denkanstoß",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -698,7 +748,7 @@ fun AiSavingsScreen(
                             Icon(
                                 Icons.Default.Casino,
                                 contentDescription = if (isEn) "Next quote" else "Anderer Spruch",
-                                tint = Color(0xFF64748B),
+                                tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -716,7 +766,7 @@ fun AiSavingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             fontStyle = FontStyle.Italic,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF334155),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 20.sp
                         )
                     }
@@ -893,8 +943,10 @@ fun AiSavingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
                 ) {
                     Row(
@@ -905,7 +957,7 @@ fun AiSavingsScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFFFEE2E2),
+                            color = Color(0xFFDC2626).copy(alpha = 0.12f),
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -1006,7 +1058,8 @@ fun AiSavingsScreen(
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF0FDF4),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
@@ -1014,7 +1067,7 @@ fun AiSavingsScreen(
                             modifier = Modifier.padding(10.dp),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF15803D),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             lineHeight = 16.sp
                         )
                     }
@@ -1045,8 +1098,9 @@ private fun SparHackGridButton(
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        tonalElevation = 1.dp
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        tonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
