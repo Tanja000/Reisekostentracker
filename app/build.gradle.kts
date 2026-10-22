@@ -1,7 +1,6 @@
 plugins {
-  alias(libs.plugins.android.application)
-  alias(libs.plugins.compose.compiler)
-  alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -29,16 +28,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
-      compose = true
-      aidl = false
-      buildConfig = false
-      shaders = false
+        compose = true
+        aidl = false
+        buildConfig = false
+        shaders = false
     }
 
     packaging {
-      resources {
-        excludes += "/META-INF/{AL2.0,LGPL2.1}"
-      }
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
@@ -47,52 +46,47 @@ kotlin {
 }
 
 dependencies {
-  val composeBom = platform(libs.androidx.compose.bom)
-  implementation(composeBom)
-  androidTestImplementation(composeBom)
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
-  // Core Android dependencies
-  implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.lifecycle.runtime.ktx)
-  implementation(libs.androidx.activity.compose)
+    // Core Android dependencies
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
 
-  // Arch Components
-  implementation(libs.androidx.lifecycle.runtime.compose)
-  implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // Arch Components
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-  // Compose
-  implementation(libs.androidx.compose.ui)
-  implementation(libs.androidx.compose.ui.tooling.preview)
-  implementation(libs.androidx.compose.material3)
-  implementation(libs.androidx.compose.material.icons.extended)
-  // Tooling
-  debugImplementation(libs.androidx.compose.ui.tooling)
-  // Instrumented tests
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Compose
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    // Tooling
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    // Instrumented tests
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-  // Local tests: jUnit, coroutines, Android runner
-  testImplementation(libs.junit)
-  testImplementation(libs.kotlinx.coroutines.test)
+    // Local tests: jUnit, coroutines, Android runner
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 
-  // Instrumented tests: jUnit rules and runners
-  androidTestImplementation(libs.androidx.test.core)
-  androidTestImplementation(libs.androidx.test.ext.junit)
-  androidTestImplementation(libs.androidx.test.runner)
-  androidTestImplementation(libs.androidx.test.espresso.core)
+    // Instrumented tests: jUnit rules and runners
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.espresso.core)
 
-  // Navigation
-  implementation(libs.androidx.navigation3.ui)
-  implementation(libs.androidx.navigation3.runtime)
-  implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-
-  // MapLibre Android SDK (OpenFreeMap vector tiles, 0€, license free)
-  implementation("org.maplibre.gl:android-sdk:11.8.2")
+    // MapLibre Android SDK (OpenFreeMap vector tiles, 0€, license free)
+    implementation("org.maplibre.gl:android-sdk:11.8.2")
 }
 
 abstract class CopySaveIqArtifactsTask : DefaultTask() {
     init {
-        doNotTrackState("Copies final artifacts directly to root project directory")
+        doNotTrackState("Copies final artifacts directly to root project directory and removes app-debug.apk")
     }
 
     @get:Internal
@@ -114,8 +108,12 @@ abstract class CopySaveIqArtifactsTask : DefaultTask() {
         if (srcApk.exists()) {
             val rootApk = File(rootDirFile, "SaveIQ.apk")
             srcApk.copyTo(rootApk, overwrite = true)
-            srcApk.copyTo(File(debugDirFile, "SaveIQ.apk"), overwrite = true)
-            println("Created APK in root: ${rootApk.absolutePath}")
+            srcApk.delete()
+            println("Created APK in root: ${rootApk.absolutePath} (removed app-debug.apk)")
+        }
+        val duplicateApkInBuild = File(debugDirFile, "SaveIQ.apk")
+        if (duplicateApkInBuild.exists()) {
+            duplicateApkInBuild.delete()
         }
 
         val bundleFile = File(bundleDirFile, "app-debug.aab")
@@ -127,14 +125,10 @@ abstract class CopySaveIqArtifactsTask : DefaultTask() {
             println("Created Google Play Bundle in root: ${rootAab.absolutePath} and ${rootApp.absolutePath}")
         }
 
-        // Delete legacy TrackMyCent.apk if exists
-        val legacyRoot = File(rootDirFile, "TrackMyCent.apk")
-        if (legacyRoot.exists()) {
-            legacyRoot.delete()
-        }
-        val legacyInApk = File(debugDirFile, "TrackMyCent.apk")
-        if (legacyInApk.exists()) {
-            legacyInApk.delete()
+        // Remove any legacy or stray app-debug.apk in root
+        listOf("TrackMyCent.apk", "app-debug.apk").forEach { name ->
+            val f = File(rootDirFile, name)
+            if (f.exists()) f.delete()
         }
     }
 }
@@ -153,5 +147,3 @@ tasks.matching { it.name == "assembleDebug" }.configureEach {
 tasks.matching { it.name == "bundleDebug" }.configureEach {
     finalizedBy("copySaveIqArtifacts")
 }
-
-

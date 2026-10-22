@@ -25,13 +25,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import de.saveiq.app.model.ExpenseCategory
 
 @Composable
@@ -47,86 +43,86 @@ fun SaveIQAppIcon(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF065F46),
                         Color(0xFF0F172A),
-                        Color(0xFF0D9488)
+                        Color(0xFF1E3A8A),
+                        Color(0xFF2563EB)
                     )
                 )
             )
             .border(
                 width = 1.dp,
-                color = Color(0xFF34D399).copy(alpha = 0.45f),
+                color = Color(0xFF60A5FA).copy(alpha = 0.45f),
                 shape = RoundedCornerShape(cornerRadius)
             ),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(size * 0.72f)) {
+        Canvas(modifier = Modifier.size(size * 0.74f)) {
             val w = this.size.width
             val h = this.size.height
 
-            // Three ascending wealth bars
-            val barWidth = w * 0.16f
-            val baseLineY = h * 0.84f
-
-            // Bar 1 (Left)
-            val bar1H = h * 0.26f
-            drawRoundRect(
-                color = Color(0xFFA7F3D0),
-                topLeft = Offset(w * 0.14f, baseLineY - bar1H),
-                size = Size(barWidth, bar1H),
-                cornerRadius = CornerRadius(barWidth * 0.3f)
+            // 1. Golden Savings Coin peeking into top of Smart Wallet
+            drawCircle(
+                color = Color(0xFFF59E0B),
+                radius = w * 0.24f,
+                center = Offset(w * 0.44f, h * 0.30f)
+            )
+            drawCircle(
+                color = Color(0xFFFEF08A),
+                radius = w * 0.17f,
+                center = Offset(w * 0.44f, h * 0.30f)
             )
 
-            // Bar 2 (Middle)
-            val bar2H = h * 0.44f
-            drawRoundRect(
-                color = Color(0xFFD1FAE5),
-                topLeft = Offset(w * 0.42f, baseLineY - bar2H),
-                size = Size(barWidth, bar2H),
-                cornerRadius = CornerRadius(barWidth * 0.3f)
-            )
-
-            // Bar 3 (Right - Tallest)
-            val bar3H = h * 0.64f
+            // 2. Smart Wallet Body (Crisp White)
             drawRoundRect(
                 color = Color.White,
-                topLeft = Offset(w * 0.70f, baseLineY - bar3H),
-                size = Size(barWidth, bar3H),
-                cornerRadius = CornerRadius(barWidth * 0.3f)
+                topLeft = Offset(w * 0.12f, h * 0.34f),
+                size = Size(w * 0.74f, h * 0.54f),
+                cornerRadius = CornerRadius(w * 0.14f, w * 0.14f)
             )
 
-            // Golden Upward Growth Trend Line
-            val trendPath = Path().apply {
-                moveTo(w * 0.14f, h * 0.46f)
-                lineTo(w * 0.40f, h * 0.26f)
-                lineTo(w * 0.56f, h * 0.34f)
-                lineTo(w * 0.84f, h * 0.10f)
-            }
-            drawPath(
-                path = trendPath,
-                color = Color(0xFFFDE047),
-                style = Stroke(
-                    width = w * 0.095f,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round
-                )
+            // 3. Magnetic Smart Clasp on right side of wallet
+            drawRoundRect(
+                color = Color(0xFF1D4ED8),
+                topLeft = Offset(w * 0.58f, h * 0.49f),
+                size = Size(w * 0.32f, h * 0.24f),
+                cornerRadius = CornerRadius(w * 0.10f, w * 0.10f)
             )
 
-            // Arrowhead
-            val arrowHead = Path().apply {
-                moveTo(w * 0.64f, h * 0.10f)
-                lineTo(w * 0.84f, h * 0.10f)
-                lineTo(w * 0.84f, h * 0.30f)
+            // 4. Golden IQ Star Sparkle inside the clasp
+            val claspStar = Path().apply {
+                val cx = w * 0.71f
+                val cy = h * 0.61f
+                val rOut = w * 0.09f
+                val rIn = w * 0.03f
+                moveTo(cx, cy - rOut)
+                lineTo(cx + rIn, cy - rIn)
+                lineTo(cx + rOut, cy)
+                lineTo(cx + rIn, cy + rIn)
+                lineTo(cx, cy + rOut)
+                lineTo(cx - rIn, cy + rIn)
+                lineTo(cx - rOut, cy)
+                lineTo(cx - rIn, cy - rIn)
+                close()
             }
-            drawPath(
-                path = arrowHead,
-                color = Color(0xFFFDE047),
-                style = Stroke(
-                    width = w * 0.095f,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round
-                )
-            )
+            drawPath(path = claspStar, color = Color(0xFFFDE047))
+
+            // 5. Top-Right AI Sparkle Star
+            val aiStar = Path().apply {
+                val cx = w * 0.80f
+                val cy = h * 0.18f
+                val rOut = w * 0.11f
+                val rIn = w * 0.035f
+                moveTo(cx, cy - rOut)
+                lineTo(cx + rIn, cy - rIn)
+                lineTo(cx + rOut, cy)
+                lineTo(cx + rIn, cy + rIn)
+                lineTo(cx, cy + rOut)
+                lineTo(cx - rIn, cy + rIn)
+                lineTo(cx - rOut, cy)
+                lineTo(cx - rIn, cy - rIn)
+                close()
+            }
+            drawPath(path = aiStar, color = Color(0xFF38BDF8))
         }
     }
 }

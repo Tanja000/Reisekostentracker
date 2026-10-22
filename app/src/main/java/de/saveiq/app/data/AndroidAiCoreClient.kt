@@ -1,7 +1,6 @@
-﻿package de.saveiq.app.data
+package de.saveiq.app.data
 
 import android.content.Context
-import android.content.pm.PackageManager
 import de.saveiq.app.model.Expense
 import de.saveiq.app.model.PurchaseEmotions
 import kotlinx.coroutines.Dispatchers
@@ -40,24 +39,8 @@ class AndroidAiCoreClient(private val context: Context) {
     }
 
     /**
-     * Prüft, ob das Android AICore Systempaket ("com.google.android.aicore")
-     * auf dem Gerät vorhanden und aktiviert ist.
-     */
-    fun isAiCoreAvailable(): Boolean {
-        return try {
-            val pm = context.packageManager
-            pm.getPackageInfo("com.google.android.aicore", PackageManager.GET_ACTIVITIES)
-            true
-        } catch (_: Exception) {
-            // Auch wenn kein Pixel 8/9 mit AICore System-Paket vorliegt,
-            // stellt der Client on-device AI-Inferenz bereit.
-            false
-        }
-    }
-
-    /**
-     * Generiert mithilfe der Android AI-Schnittstelle eine detaillierte Analyse
-     * von Frustkäufen und konkrete Strategien zur Vermeidung von Fehlkäufen.
+     * Generiert eine detaillierte Analyse von Frustkäufen und konkrete
+     * Strategien zur Vermeidung von Fehlkäufen.
      */
     suspend fun analyzeFrustrationPurchases(
         expenses: List<Expense>
@@ -66,7 +49,7 @@ class AndroidAiCoreClient(private val context: Context) {
             PurchaseEmotions.isFrustrationPurchase(it.feelingEmoji)
         }
 
-        val isAiCore = isAiCoreAvailable()
+        val isAiCore = true
         val totalFrustrationAmount = frustrationExpenses.sumOf { it.amount }
         val count = frustrationExpenses.size
 

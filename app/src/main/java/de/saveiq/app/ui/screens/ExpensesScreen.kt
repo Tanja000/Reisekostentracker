@@ -123,33 +123,22 @@ fun ExpensesScreen(
         SimpleDateFormat(if (currentLanguage.isEnglish) "MMM dd, yyyy" else "dd. MMM yyyy", locale)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.openAddExpenseDialog() },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Ausgabe hinzufügen")
-            }
-        }
-    ) { innerPadding ->
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Top Section: Total Spent Summary Card & Search
+            // Top Section: Compact Total Spent Summary Card & Search
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 val totalSum = expenses.sumOf { it.amount }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(0.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                     colors = CardDefaults.cardColors(
@@ -159,19 +148,19 @@ fun ExpensesScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 14.dp, vertical = 9.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
                             Text(
                                 text = "${AppStrings.totalExpenses(currentLanguage)} (${timeFilter.getLabel(currentLanguage)})",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
                                 text = "${currencyFormat.format(totalSum)} €",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -182,7 +171,7 @@ fun ExpensesScreen(
                         ) {
                             Text(
                                 text = AppStrings.entriesCount(expenses.size, currentLanguage),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -190,14 +179,14 @@ fun ExpensesScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text(AppStrings.searchPlaceholder(currentLanguage)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder = { Text(AppStrings.searchPlaceholder(currentLanguage), style = MaterialTheme.typography.bodyMedium) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.setSearchQuery("") }) {
@@ -212,11 +201,11 @@ fun ExpensesScreen(
             }
 
             // Quick-Add Horizontal Row with Recurring Button
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                        .padding(horizontal = 16.dp, vertical = 1.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -256,7 +245,7 @@ fun ExpensesScreen(
 
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(QuickAddPresets.items) { preset ->
@@ -264,10 +253,11 @@ fun ExpensesScreen(
                             modifier = Modifier.clickable { activeQuickAdd = preset },
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                            tonalElevation = 1.dp
+                            tonalElevation = 0.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -314,7 +304,7 @@ fun ExpensesScreen(
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -337,13 +327,12 @@ fun ExpensesScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // List of Expenses
+            // List of Expenses (fills the remaining screen height all the way to the bottom bar)
             if (expenses.isEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -368,9 +357,11 @@ fun ExpensesScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp, top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 76.dp, top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(expenses, key = { it.id }) { expense ->
                         val cat = categoryMap[expense.categoryId] ?: ExpenseCategory(
@@ -491,6 +482,17 @@ fun ExpensesScreen(
                     }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = { viewModel.openAddExpenseDialog() },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Ausgabe hinzufügen")
         }
     }
 

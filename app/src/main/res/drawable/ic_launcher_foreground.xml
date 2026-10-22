@@ -6,80 +6,106 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Soft drop shadow behind shield -->
+    <!-- Soft drop shadow under Smart Wallet -->
     <path
         android:fillColor="#38000000"
-        android:pathData="M54,27 L75,35.5 L75,54 C75,68.5 65.5,79 54,84 C42.5,79 33,68.5 33,54 L33,35.5 Z" />
+        android:pathData="M35,44 L73,44 A7,7 0 0,1 80,51 L80,71 A7,7 0 0,1 73,78 L35,78 A7,7 0 0,1 28,71 L28,51 A7,7 0 0,1 35,44 Z" />
 
-    <!-- Outer Shield Base (Emerald-Teal Glass) -->
-    <path android:pathData="M54,25 L75,33.5 L75,52 C75,66.5 65.5,77 54,82 C42.5,77 33,66.5 33,52 L33,33.5 Z">
+    <!-- Golden Savings Coin slipping into the top of the Wallet -->
+    <path android:pathData="M50,39m-14,0a14,14 0 1,0 28,0a14,14 0 1,0 -28,0">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="33"
+                android:startX="36"
                 android:startY="25"
-                android:endX="75"
-                android:endY="82"
+                android:endX="64"
+                android:endY="53"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#10B981" />
-                <item android:offset="0.55" android:color="#059669" />
-                <item android:offset="1.0" android:color="#065F46" />
+                <item android:offset="0.0" android:color="#FEF08A" />
+                <item android:offset="0.45" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#D97706" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Crisp Gold-Mint Shield Rim -->
+    <!-- Coin Inner Ring -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#A7F3D0"
-        android:strokeWidth="1.8"
-        android:strokeAlpha="0.85"
-        android:strokeLineJoin="round"
-        android:pathData="M54,25 L75,33.5 L75,52 C75,66.5 65.5,77 54,82 C42.5,77 33,66.5 33,52 L33,33.5 Z" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeAlpha="0.65"
+        android:pathData="M50,39m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
 
-    <!-- Ascending Wealth Bar 1 (Left) -->
-    <path
-        android:fillColor="#A7F3D0"
-        android:pathData="M42,57 L47,57 A1.5,1.5 0 0,1 48.5,58.5 L48.5,67 L40.5,67 L40.5,58.5 A1.5,1.5 0 0,1 42,57 Z" />
-
-    <!-- Ascending Wealth Bar 2 (Middle) -->
-    <path
-        android:fillColor="#D1FAE5"
-        android:pathData="M51.5,50 L56.5,50 A1.5,1.5 0 0,1 58,51.5 L58,67 L50,67 L50,51.5 A1.5,1.5 0 0,1 51.5,50 Z" />
-
-    <!-- Ascending Wealth Bar 3 (Right - Tallest) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M61,42 L66,42 A1.5,1.5 0 0,1 67.5,43.5 L67.5,67 L59.5,67 L59.5,43.5 A1.5,1.5 0 0,1 61,42 Z" />
-
-    <!-- Base Platform Line -->
+    <!-- Euro Sign (€) on Coin -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2.2"
         android:strokeLineCap="round"
-        android:pathData="M39,67.5 L69,67.5" />
+        android:pathData="M53.5,33.5 C49,32.5 45.5,35 45.5,38.5 C45.5,42 49,44.5 53.5,43.5 M44,37 L51.5,37 M44,40 L50.5,40" />
 
-    <!-- Dynamic Golden Upward Growth Trend Line -->
+    <!-- Back Flap of Wallet (Deep Blue-Teal Accent) -->
+    <path
+        android:fillColor="#93C5FD"
+        android:pathData="M34,40 L70,40 A6,6 0 0,1 76,46 L76,50 L28,50 L28,46 A6,6 0 0,1 34,40 Z" />
+
+    <!-- Main Smart Wallet Body (Crisp White to Soft Ice Gradient) -->
+    <path android:pathData="M34,44 L72,44 A6,6 0 0,1 78,50 L78,70 A6,6 0 0,1 72,76 L34,76 A6,6 0 0,1 28,70 L28,50 A6,6 0 0,1 34,44 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28"
+                android:startY="44"
+                android:endX="78"
+                android:endY="76"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="1.0" android:color="#DBEAFE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle Card Slot Seam on Wallet -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FDE047"
-        android:strokeWidth="3.2"
+        android:strokeColor="#93C5FD"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M41,51 L50,43 L56,46.5 L66,35" />
+        android:pathData="M34,50 L58,50" />
 
-    <!-- Golden Arrowhead -->
+    <!-- Smart Magnetic Clasp on Right Side of Wallet -->
+    <path android:pathData="M67,54 L78,54 A3,3 0 0,1 81,57 L81,63 A3,3 0 0,1 78,66 L67,66 A6,6 0 0,1 61,60 A6,6 0 0,1 67,54 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="61"
+                android:startY="54"
+                android:endX="81"
+                android:endY="66"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#2563EB" />
+                <item android:offset="1.0" android:color="#1E40AF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Clasp Rim Highlight -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FDE047"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M59.5,35 L66,35 L66,41.5" />
+        android:strokeColor="#93C5FD"
+        android:strokeWidth="1.1"
+        android:pathData="M67,54 L78,54 A3,3 0 0,1 81,57 L81,63 A3,3 0 0,1 78,66 L67,66 A6,6 0 0,1 61,60 A6,6 0 0,1 67,54 Z" />
 
-    <!-- SaveIQ Intelligence Star Sparkle (Top Left inside Shield) -->
+    <!-- Glowing IQ Sparkle inside the Wallet Clasp (Smart Intelligence Symbol) -->
     <path
-        android:fillColor="#FEF08A"
-        android:pathData="M45,33 L46.2,36.8 L50,38 L46.2,39.2 L45,43 L43.8,39.2 L40,38 L43.8,36.8 Z" />
+        android:fillColor="#FDE047"
+        android:pathData="M68,55.5 L69.1,58.9 L72.5,60 L69.1,61.1 L68,64.5 L66.9,61.1 L63.5,60 L66.9,58.9 Z" />
+
+    <!-- Top-Right AI Sparkle Star -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M72,27 L73.3,31.2 L77.5,32.5 L73.3,33.8 L72,38 L70.7,33.8 L66.5,32.5 L70.7,31.2 Z" />
+
+    <!-- Inner White Core of Top-Right AI Star -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,29.5 L72.7,31.8 L75,32.5 L72.7,33.2 L72,35.5 L71.3,33.2 L69,32.5 L71.3,31.8 Z" />
 
 </vector>
