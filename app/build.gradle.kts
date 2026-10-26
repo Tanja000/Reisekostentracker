@@ -7,7 +7,7 @@ android {
     namespace = "de.saveiq.app"
     compileSdk = 36
     defaultConfig {
-        applicationId = "de.saveiq.app"
+        applicationId = "com.saveiq"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
