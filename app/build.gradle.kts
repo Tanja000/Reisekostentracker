@@ -14,12 +14,22 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("saveiq-release-key.jks")
+            storePassword = "SaveIQ2026!"
+            keyAlias = "saveiq"
+            keyPassword = "SaveIQ2026!"
+        }
+    }
+
     buildTypes {
         debug {
             // Debug build
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -86,14 +96,14 @@ dependencies {
 
 abstract class CopySaveIqArtifactsTask : DefaultTask() {
     init {
-        doNotTrackState("Copies final artifacts directly to root project directory and removes app-debug.apk")
+        doNotTrackState("Copies final release-signed AAB and APK directly to root project directory")
     }
 
     @get:Internal
     abstract val debugDir: DirectoryProperty
 
     @get:Internal
-    abstract val bundleDir: DirectoryProperty
+    abstract val releaseBundleDir: DirectoryProperty
 
     @get:Internal
     abstract val rootOutputDir: DirectoryProperty
@@ -102,7 +112,7 @@ abstract class CopySaveIqArtifactsTask : DefaultTask() {
     fun copyArtifacts() {
         val rootDirFile = rootOutputDir.get().asFile
         val debugDirFile = debugDir.get().asFile
-        val bundleDirFile = bundleDir.get().asFile
+        val releaseBundleDirFile = releaseBundleDir.get().asFile
 
         val srcApk = File(debugDirFile, "app-debug.apk")
         if (srcApk.exists()) {
@@ -116,16 +126,16 @@ abstract class CopySaveIqArtifactsTask : DefaultTask() {
             duplicateApkInBuild.delete()
         }
 
-        val bundleFile = File(bundleDirFile, "app-debug.aab")
-        if (bundleFile.exists()) {
+        val releaseBundleFile = File(releaseBundleDirFile, "app-release.aab")
+        if (releaseBundleFile.exists()) {
             val rootAab = File(rootDirFile, "SaveIQ.aab")
             val rootApp = File(rootDirFile, "SaveIQ.app")
-            bundleFile.copyTo(rootAab, overwrite = true)
-            bundleFile.copyTo(rootApp, overwrite = true)
-            println("Created Google Play Bundle in root: ${rootAab.absolutePath} and ${rootApp.absolutePath}")
+            releaseBundleFile.copyTo(rootAab, overwrite = true)
+            releaseBundleFile.copyTo(rootApp, overwrite = true)
+            println("Created Release-Signed Google Play Bundle in root: ${rootAab.absolutePath} and ${rootApp.absolutePath}")
         }
 
-        // Remove any legacy or stray app-debug.apk in root
+        // Remove any legacy or stray files in root
         listOf("TrackMyCent.apk", "app-debug.apk").forEach { name ->
             val f = File(rootDirFile, name)
             if (f.exists()) f.delete()
@@ -135,15 +145,15 @@ abstract class CopySaveIqArtifactsTask : DefaultTask() {
 
 tasks.register<CopySaveIqArtifactsTask>("copySaveIqArtifacts") {
     debugDir.set(layout.buildDirectory.dir("outputs/apk/debug"))
-    bundleDir.set(layout.buildDirectory.dir("outputs/bundle/debug"))
+    releaseBundleDir.set(layout.buildDirectory.dir("outputs/bundle/release"))
     rootOutputDir.set(project.rootDir)
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
-    dependsOn("bundleDebug")
+    dependsOn("bundleRelease")
     finalizedBy("copySaveIqArtifacts")
 }
 
-tasks.matching { it.name == "bundleDebug" }.configureEach {
+tasks.matching { it.name == "bundleRelease" }.configureEach {
     finalizedBy("copySaveIqArtifacts")
 }
