@@ -120,9 +120,9 @@ fun CategoryPieChart(
             // Header & Subtitle
             Text(
                 text = if (chartType == OverviewChartType.PIE) {
-                    if (isEn) "Overview: Category Breakdown" else "Übersicht: Kategorien-Kuchendiagramm"
+                    if (isEn) "Category Breakdown" else "Kategorien-Übersicht"
                 } else {
-                    if (isEn) "Daily Overview: Expenses per Day" else "Tagesübersicht: Balkendiagramm pro Tag"
+                    if (isEn) "Daily Expenses" else "Tagesausgaben im Verlauf"
                 },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -137,7 +137,7 @@ fun CategoryPieChart(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Segmented Toggle: Kuchendiagramm <-> Balkendiagramm (Jeder Tag)
+            // Segmented Toggle: Kuchen <-> Balken
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.surface,
@@ -188,7 +188,7 @@ fun CategoryPieChart(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isEn) "Pie Chart" else "Kuchendiagramm",
+                                text = if (isEn) "Pie" else "Kuchen",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isPie) FontWeight.Bold else FontWeight.Medium,
                                 color = pieText
@@ -214,7 +214,7 @@ fun CategoryPieChart(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isEn) "Daily Bar Chart" else "Balken (Jeder Tag)",
+                                text = if (isEn) "Bars" else "Balken",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isBar) FontWeight.Bold else FontWeight.Medium,
                                 color = barText

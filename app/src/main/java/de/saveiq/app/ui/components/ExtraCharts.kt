@@ -1,4 +1,4 @@
-﻿package de.saveiq.app.ui.components
+package de.saveiq.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -68,7 +68,7 @@ fun WeekdaySpendingChart(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (isEn) "Comparison of spending from Monday to Sunday:" else "Vergleich der Reisetage von Montag bis Sonntag:",
+                text = if (isEn) "Comparison of spending from Monday to Sunday:" else "Ausgaben von Montag bis Sonntag im Überblick:",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -143,6 +143,35 @@ fun WeekdaySpendingChart(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            val peakDay = weekdayStats.maxByOrNull { it.totalAmount }
+            if (peakDay != null && peakDay.totalAmount > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                androidx.compose.material3.Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "💡",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isEn) "Highest spending day: ${peakDay.dayName} (${numberFormat.format(peakDay.totalAmount)} €)"
+                            else "Ausgabenstärkster Wochentag: ${peakDay.dayName} (${numberFormat.format(peakDay.totalAmount)} €)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

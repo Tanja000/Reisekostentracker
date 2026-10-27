@@ -25,16 +25,22 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -226,6 +232,42 @@ fun StatisticsScreen(
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
+    }
+
+    // Smarte Finanz-Einblicke (Financial Insights & KPIs)
+    val avgPerExpense = remember(filteredExpenses) {
+        if (filteredExpenses.isNotEmpty()) filteredExpenses.sumOf { it.amount } / filteredExpenses.size else 0.0
+    }
+
+    val noSpendDays = remember(statistics.daysSpan, statistics.activeDaysCount) {
+        max(0, statistics.daysSpan - statistics.activeDaysCount)
+    }
+
+    val noSpendPercentage = remember(statistics.daysSpan, noSpendDays) {
+        if (statistics.daysSpan > 0) ((noSpendDays.toDouble() / statistics.daysSpan) * 100).toInt() else 0
+    }
+
+    val peakSpendingDay = remember(filteredExpenses, isEn) {
+        if (filteredExpenses.isEmpty()) null
+        else {
+            val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.GERMAN)
+            val displayDateFormat = SimpleDateFormat("dd. MMM", if (isEn) Locale.US else Locale.GERMAN)
+            val expensesByDay = filteredExpenses.groupBy { dateFormat.format(Date(it.date)) }
+            val maxDayEntry = expensesByDay.maxByOrNull { it.value.sumOf { exp -> exp.amount } }
+            maxDayEntry?.let { entry ->
+                val firstDate = entry.value.first().date
+                val daySum = entry.value.sumOf { it.amount }
+                Pair(displayDateFormat.format(Date(firstDate)), daySum)
+            }
+        }
+    }
+
+    val lowestExpense = remember(filteredExpenses) {
+        filteredExpenses.minByOrNull { it.amount }
+    }
+
+    val topCategory = remember(statistics.categoryStats) {
+        statistics.categoryStats.firstOrNull()
     }
 
     LazyColumn(
@@ -585,6 +627,69 @@ fun StatisticsScreen(
                 }
             }
 
+            // 3. FINANZ-EINBLICKE & HIGHLIGHTS (Smart Finance Insights)
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = if (isEn) "Finance Insights & KPIs" else "Finanz-Einblicke & Kennzahlen",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // 2x2 Grid: Ausgabenfreie Tage, Spitzen-Tag, Ø pro Buchung, Top-Kategorie
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Ausgabenfreie Tage (Budget-Disziplin & Sparerfolg)
+                        FinanceInsightCard(
+                            title = if (isEn) "No-Spend Days" else "Ausgabenfreie Tage",
+                            value = "$noSpendDays ${if (isEn) "days" else "Tage"} ($noSpendPercentage%)",
+                            subtitle = if (isEn) "out of ${statistics.daysSpan} days zero spend" else "von ${statistics.daysSpan} Tagen ohne Ausgabe",
+                            icon = Icons.Default.Spa,
+                            accentColor = Color(0xFF10B981),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Spitzen-Ausgabetag (Peak-Tag)
+                        FinanceInsightCard(
+                            title = if (isEn) "Peak Spending Day" else "Spitzen-Ausgabetag",
+                            value = peakSpendingDay?.let { "${it.first}: ${currencyFormat.format(it.second)} €" } ?: "-",
+                            subtitle = if (isEn) "Highest daily total" else "Höchster Tagesbetrag",
+                            icon = Icons.Default.TrendingUp,
+                            accentColor = Color(0xFFEF4444),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Ø pro Buchung / Bon
+                        FinanceInsightCard(
+                            title = if (isEn) "Ø per Transaction" else "Ø pro Buchung",
+                            value = "${currencyFormat.format(avgPerExpense)} €",
+                            subtitle = if (isEn) "across ${statistics.expenseCount} entries" else "bei ${statistics.expenseCount} Ausgaben",
+                            icon = Icons.Default.ShoppingCart,
+                            accentColor = Color(0xFF0284C7),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Größter Ausgabenbereich (Top Category)
+                        FinanceInsightCard(
+                            title = if (isEn) "Top Category" else "Größter Posten",
+                            value = topCategory?.let { "${it.category.localizedName(isEn)} (${String.format(Locale.GERMAN, "%.1f", it.percentage)}%)" } ?: "-",
+                            subtitle = topCategory?.let { "${currencyFormat.format(it.totalAmount)} € gesamt" } ?: "-",
+                            icon = Icons.Default.Star,
+                            accentColor = Color(0xFF8B5CF6),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
             // Weekday spending chart (Mo-So)
             if (statistics.weekdayStats.isNotEmpty()) {
                 item {
@@ -605,56 +710,138 @@ fun StatisticsScreen(
                 }
             }
 
-            // Highest expense highlight
+            // Spannbreite der Ausgaben: Höchste & Günstigste Ausgabe
             if (statistics.highestExpense != null) {
+                val highExp = statistics.highestExpense
+                val highCategory = categories.firstOrNull { it.id == highExp.categoryId }
+                val highDate = SimpleDateFormat("dd. MMM yyyy", if (isEn) Locale.US else Locale.GERMAN).format(Date(highExp.date))
+
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        elevation = CardDefaults.cardElevation(0.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (isEn) "Expense Range: Highest & Lowest" else "Spannbreite der Ausgaben",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (isEn) "Highest Single Expense" else "Höchste Einzelausgabe",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = statistics.highestExpense?.title ?: "",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Text(
-                                text = "${currencyFormat.format(statistics.highestExpense?.amount ?: 0.0)} €",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            elevation = CardDefaults.cardElevation(0.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Höchste Einzelausgabe
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFEF4444),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = if (isEn) "Highest Single Expense" else "Höchste Einzelausgabe",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                        Text(
+                                            text = highExp.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        val highCatName = highCategory?.localizedName(isEn)
+                                        Text(
+                                            text = if (highCatName != null) "$highDate • $highCatName" else highDate,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                    Text(
+                                        text = "${currencyFormat.format(highExp.amount)} €",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFEF4444)
+                                    )
+                                }
+
+                                // Kleinste Einzelausgabe (falls abweichend)
+                                if (lowestExpense != null && lowestExpense.id != highExp.id) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    )
+
+                                    val lowCategory = categories.firstOrNull { it.id == lowestExpense.categoryId }
+                                    val lowDate = SimpleDateFormat("dd. MMM yyyy", if (isEn) Locale.US else Locale.GERMAN).format(Date(lowestExpense.date))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = Color(0xFF10B981),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = if (isEn) "Lowest Single Expense" else "Kleinste Einzelausgabe",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                            Text(
+                                                text = lowestExpense.title,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            val lowCatName = lowCategory?.localizedName(isEn)
+                                            Text(
+                                                text = if (lowCatName != null) "$lowDate • $lowCatName" else lowDate,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                        Text(
+                                            text = "${currencyFormat.format(lowestExpense.amount)} €",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF10B981)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -839,6 +1026,72 @@ fun CategoryStatItem(
                     .clip(RoundedCornerShape(4.dp)),
                 color = catStat.category.color,
                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FinanceInsightCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(accentColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                maxLines = 1
             )
         }
     }
