@@ -1,7 +1,8 @@
 package de.saveiq.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,25 +21,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,29 +44,43 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import de.saveiq.app.data.AiFrustrationReport
-import de.saveiq.app.data.AiOpportunityInsight
 import de.saveiq.app.model.AppStrings
 import de.saveiq.app.model.CategoryStat
+import de.saveiq.app.model.DayStat
+import de.saveiq.app.model.Expense
+import de.saveiq.app.model.ExpenseStatistics
 import de.saveiq.app.ui.components.CategoryIconBadge
 import de.saveiq.app.ui.components.CategoryPieChart
-import de.saveiq.app.ui.components.ExpensesBarChart
 import de.saveiq.app.ui.components.PaymentMethodsCard
 import de.saveiq.app.ui.components.StatCard
 import de.saveiq.app.ui.components.WeekdaySpendingChart
 import de.saveiq.app.ui.viewmodel.ExpenseViewModel
-import de.saveiq.app.ui.viewmodel.TimeFilter
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import kotlin.math.max
+
+private enum class StatPeriodMode {
+    ALL_TIME,       // Gesamt seit Aufzeichnung
+    TODAY,          // Heutiger Tag
+    THIS_WEEK,      // Heutige Woche
+    YEAR_TO_DATE,   // Das Jahr bis jetzt
+    SPECIFIC_YEAR,  // Einzelnes Jahr (wenn > 1 Jahr Daten vorhanden)
+    SPECIFIC_MONTH  // Gewählter Monat aus dem Dropdown-Menü
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,14 +88,138 @@ fun StatisticsScreen(
     viewModel: ExpenseViewModel,
     modifier: Modifier = Modifier
 ) {
-    val statistics by viewModel.statistics.collectAsState()
-    val timeFilter by viewModel.timeFilter.collectAsState()
-    val chartScope by viewModel.chartScope.collectAsState()
-    val aiFrustrationReport by viewModel.aiFrustrationReport.collectAsState()
-    val worldBankInflationRate by viewModel.worldBankInflationRate.collectAsState()
-    val aiOpportunityInsights by viewModel.aiOpportunityInsights.collectAsState()
+    val allExpenses by viewModel.expenses.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val isEn = currentLanguage.isEnglish
+
+    val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
+
+    // Ermittle alle Jahre, in denen Ausgaben existieren
+    val availableYears = remember(allExpenses) {
+        val years = allExpenses.map {
+            Calendar.getInstance().apply { timeInMillis = it.date }.get(Calendar.YEAR)
+        }.distinct().sortedDescending()
+        years.ifEmpty { listOf(currentYear) }
+    }
+
+    var periodMode by rememberSaveable { mutableStateOf(StatPeriodMode.ALL_TIME) }
+    var selectedYear by rememberSaveable { mutableIntStateOf(currentYear) }
+    // -1 = Kein einzelner Monat gewählt ("Alle Monate"), 0..11 = Januar..Dezember
+    var selectedMonthIndex by rememberSaveable { mutableIntStateOf(-1) }
+    var isMonthDropdownExpanded by remember { mutableStateOf(false) }
+
+    val monthNamesDe = remember {
+        listOf(
+            "Januar", "Februar", "März", "April", "Mai", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "Dezember"
+        )
+    }
+    val monthNamesEn = remember {
+        listOf(
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        )
+    }
+    val monthNames = if (isEn) monthNamesEn else monthNamesDe
+
+    // Filtere die Ausgaben passend zum gewählten Zeitraum oder Monat
+    val activeYearForMonth = if (availableYears.contains(selectedYear)) selectedYear else currentYear
+
+    val filteredExpenses = remember(allExpenses, periodMode, selectedYear, selectedMonthIndex, activeYearForMonth) {
+        val nowCal = Calendar.getInstance()
+        val nowYear = nowCal.get(Calendar.YEAR)
+        val nowDayOfYear = nowCal.get(Calendar.DAY_OF_YEAR)
+        val nowWeek = nowCal.get(Calendar.WEEK_OF_YEAR)
+
+        allExpenses.filter { exp ->
+            val expCal = Calendar.getInstance().apply { timeInMillis = exp.date }
+            val expYear = expCal.get(Calendar.YEAR)
+            val expMonth = expCal.get(Calendar.MONTH)
+
+            when (periodMode) {
+                StatPeriodMode.ALL_TIME -> true
+                StatPeriodMode.TODAY -> {
+                    expYear == nowYear && expCal.get(Calendar.DAY_OF_YEAR) == nowDayOfYear
+                }
+                StatPeriodMode.THIS_WEEK -> {
+                    expYear == nowYear && expCal.get(Calendar.WEEK_OF_YEAR) == nowWeek
+                }
+                StatPeriodMode.YEAR_TO_DATE -> {
+                    expYear == nowYear && exp.date <= System.currentTimeMillis()
+                }
+                StatPeriodMode.SPECIFIC_YEAR -> {
+                    expYear == selectedYear
+                }
+                StatPeriodMode.SPECIFIC_MONTH -> {
+                    if (selectedMonthIndex in 0..11) {
+                        expYear == activeYearForMonth && expMonth == selectedMonthIndex
+                    } else {
+                        true
+                    }
+                }
+            }
+        }
+    }
+
+    // Berechne die Tagesanzahl des gewählten Zeitraums für präzise Durchschnittswerte
+    val customRangeDays = remember(periodMode, selectedYear, selectedMonthIndex, activeYearForMonth, filteredExpenses) {
+        val nowCal = Calendar.getInstance()
+        when (periodMode) {
+            StatPeriodMode.TODAY -> 1
+            StatPeriodMode.THIS_WEEK -> 7
+            StatPeriodMode.YEAR_TO_DATE -> max(1, nowCal.get(Calendar.DAY_OF_YEAR))
+            StatPeriodMode.SPECIFIC_YEAR -> {
+                if (selectedYear == nowCal.get(Calendar.YEAR)) {
+                    max(1, nowCal.get(Calendar.DAY_OF_YEAR))
+                } else {
+                    val cal = Calendar.getInstance().apply { set(Calendar.YEAR, selectedYear) }
+                    cal.getActualMaximum(Calendar.DAY_OF_YEAR)
+                }
+            }
+            StatPeriodMode.SPECIFIC_MONTH -> {
+                if (selectedMonthIndex in 0..11) {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, activeYearForMonth)
+                        set(Calendar.MONTH, selectedMonthIndex)
+                        set(Calendar.DAY_OF_MONTH, 1)
+                    }
+                    cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                } else null
+            }
+            StatPeriodMode.ALL_TIME -> null
+        }
+    }
+
+    val statistics = remember(filteredExpenses, categories, customRangeDays) {
+        ExpenseStatistics.calculate(filteredExpenses, categories, customRangeDays)
+    }
+
+    // Erzeuge die Tages-Balken ("Balkendiagramm für jeden Tag") für den gewählten Zeitraum
+    val dailyBarStats = remember(filteredExpenses, periodMode, selectedYear, selectedMonthIndex, activeYearForMonth, isEn) {
+        buildDailyStatsForPeriod(
+            expenses = filteredExpenses,
+            periodMode = periodMode,
+            selectedYear = selectedYear,
+            selectedMonthIndex = selectedMonthIndex,
+            activeYearForMonth = activeYearForMonth,
+            isEn = isEn
+        )
+    }
+
+    val periodDisplayLabel = remember(periodMode, selectedYear, selectedMonthIndex, activeYearForMonth, isEn) {
+        when (periodMode) {
+            StatPeriodMode.ALL_TIME -> if (isEn) "Total Since Recording Started" else "Gesamt seit Aufzeichnung"
+            StatPeriodMode.TODAY -> if (isEn) "Today" else "Heutiger Tag"
+            StatPeriodMode.THIS_WEEK -> if (isEn) "This Week" else "Heutige Woche"
+            StatPeriodMode.YEAR_TO_DATE -> if (isEn) "Year to Date ($currentYear)" else "Jahr bis jetzt ($currentYear)"
+            StatPeriodMode.SPECIFIC_YEAR -> if (isEn) "Year $selectedYear" else "Jahr $selectedYear"
+            StatPeriodMode.SPECIFIC_MONTH -> {
+                val mName = if (selectedMonthIndex in 0..11) monthNames[selectedMonthIndex] else ""
+                "$mName $activeYearForMonth"
+            }
+        }
+    }
 
     val currencyFormat = remember(isEn) {
         NumberFormat.getNumberInstance(if (isEn) Locale.US else Locale.GERMANY).apply {
@@ -96,8 +231,9 @@ fun StatisticsScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // TOP HEADER + ZEITRAUM-FILTER + MONATS-DROPDOWN
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -106,17 +242,175 @@ fun StatisticsScreen(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // 1. Zeitraum-Chips: Gesamt seit Aufzeichnung, Heute, Diese Woche, Jahr bis jetzt (+ einzelne Jahre wenn > 1 Jahr Daten)
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(TimeFilter.values()) { filter ->
+                    item {
                         FilterChip(
-                            selected = timeFilter == filter,
-                            onClick = { viewModel.setTimeFilter(filter) },
-                            label = { Text(filter.getLabel(currentLanguage)) }
+                            selected = periodMode == StatPeriodMode.ALL_TIME,
+                            onClick = {
+                                periodMode = StatPeriodMode.ALL_TIME
+                                selectedMonthIndex = -1
+                            },
+                            label = {
+                                Text(if (isEn) "Total Since Start" else "Gesamt seit Aufzeichnung")
+                            }
                         )
+                    }
+                    item {
+                        FilterChip(
+                            selected = periodMode == StatPeriodMode.TODAY,
+                            onClick = {
+                                periodMode = StatPeriodMode.TODAY
+                                selectedMonthIndex = -1
+                            },
+                            label = {
+                                Text(if (isEn) "Today" else "Heute")
+                            }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = periodMode == StatPeriodMode.THIS_WEEK,
+                            onClick = {
+                                periodMode = StatPeriodMode.THIS_WEEK
+                                selectedMonthIndex = -1
+                            },
+                            label = {
+                                Text(if (isEn) "This Week" else "Diese Woche")
+                            }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = periodMode == StatPeriodMode.YEAR_TO_DATE,
+                            onClick = {
+                                periodMode = StatPeriodMode.YEAR_TO_DATE
+                                selectedYear = currentYear
+                                selectedMonthIndex = -1
+                            },
+                            label = {
+                                Text(if (isEn) "Year to Date" else "Jahr bis jetzt")
+                            }
+                        )
+                    }
+
+                    // Falls der Nutzer mehr als ein Jahr Daten gesammelt hat: auch die einzelnen Jahre anzeigen
+                    if (availableYears.size > 1) {
+                        items(availableYears) { year ->
+                            FilterChip(
+                                selected = periodMode == StatPeriodMode.SPECIFIC_YEAR && selectedYear == year,
+                                onClick = {
+                                    selectedYear = year
+                                    periodMode = StatPeriodMode.SPECIFIC_YEAR
+                                    selectedMonthIndex = -1
+                                },
+                                label = {
+                                    Text(if (isEn) "Year $year" else "Jahr $year")
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 2. Monats-Dropdown-Menü (Alle 12 Monate wählbar)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { isMonthDropdownExpanded = true },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (periodMode == StatPeriodMode.SPECIFIC_MONTH)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(
+                            1.dp,
+                            if (periodMode == StatPeriodMode.SPECIFIC_MONTH)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (periodMode == StatPeriodMode.SPECIFIC_MONTH && selectedMonthIndex in 0..11) {
+                                        if (isEn) "Selected Month: ${monthNames[selectedMonthIndex]} $activeYearForMonth"
+                                        else "Gewählter Monat: ${monthNames[selectedMonthIndex]} $activeYearForMonth"
+                                    } else {
+                                        if (isEn) "Select Month (All Months)" else "Monat wählen (Alle Monate)"
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = isMonthDropdownExpanded,
+                        onDismissRequest = { isMonthDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (isEn) "All Months (Overview)" else "Alle Monate (Gesamtübersicht)",
+                                    fontWeight = if (selectedMonthIndex == -1) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                selectedMonthIndex = -1
+                                if (periodMode == StatPeriodMode.SPECIFIC_MONTH) {
+                                    periodMode = StatPeriodMode.ALL_TIME
+                                }
+                                isMonthDropdownExpanded = false
+                            }
+                        )
+                        monthNames.forEachIndexed { index, monthName ->
+                            val isSelectedMonth = periodMode == StatPeriodMode.SPECIFIC_MONTH && selectedMonthIndex == index
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "$monthName $activeYearForMonth",
+                                        fontWeight = if (isSelectedMonth) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelectedMonth) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    selectedMonthIndex = index
+                                    periodMode = StatPeriodMode.SPECIFIC_MONTH
+                                    isMonthDropdownExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -127,8 +421,10 @@ fun StatisticsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
                 ) {
                     Column(
@@ -141,107 +437,116 @@ fun StatisticsScreen(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(44.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = if (isEn) "No data for this filter" else "Keine Daten für diesen Filter",
+                            text = if (isEn) "No expenses for $periodDisplayLabel" else "Keine Ausgaben für: $periodDisplayLabel",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isEn) "Add expenses or load sample data to see averages." else "Füge Ausgaben hinzu oder lade Beispieldaten, um Durchschnitte zu sehen.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = if (isEn) "Select another month/timeframe or add expenses."
+                            else "Wähle oben einen anderen Monat bzw. Zeitraum oder füge Ausgaben hinzu.",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedButton(onClick = { viewModel.seedDemoData() }) {
-                            Text(AppStrings.loadSampleData(currentLanguage))
+                        if (allExpenses.isEmpty()) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            OutlinedButton(onClick = { viewModel.seedDemoData() }) {
+                                Text(AppStrings.loadSampleData(currentLanguage))
+                            }
                         }
                     }
                 }
             }
         } else {
-            // Gesamtausgaben Banner
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+            // 1. ÜBERSICHTS-DIAGRAMM (Kuchendiagramm <-> Balkendiagramm für jeden Tag)
+            if (statistics.categoryStats.isNotEmpty()) {
+                item {
+                    CategoryPieChart(
+                        categoryStats = statistics.categoryStats,
+                        dailyStats = dailyBarStats,
+                        periodSubtitle = periodDisplayLabel,
+                        isEn = isEn
                     )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = AppStrings.totalExpenses(currentLanguage),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                            ) {
-                                Text(
-                                    text = "${statistics.daysSpan} ${if (isEn) "days period" else "Tage Zeitraum"}",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = "${currencyFormat.format(statistics.totalAmount)} €",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${statistics.expenseCount} ${if (isEn) "recorded expenses" else "erfasste Ausgaben"}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
-                            Text(
-                                text = "${statistics.activeDaysCount} ${if (isEn) "active spending days" else "Tage mit Kosten"}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
                 }
             }
 
-            // Grid of 4 StatCards
+            // 2. DURCHSCHNITT & GESAMT (Reine Zahlen-Übersicht OHNE Diagramm)
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = if (isEn) "Averages & Total ($periodDisplayLabel)" else "Durchschnitt & Gesamt ($periodDisplayLabel)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // Gesamt-Banner
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = if (isEn) "Total ($periodDisplayLabel)" else "Gesamt ($periodDisplayLabel)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${currencyFormat.format(statistics.totalAmount)} €",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Text(
+                                        text = "${statistics.expenseCount} ${if (isEn) "entries" else "Ausgaben"}",
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${statistics.activeDaysCount} / ${statistics.daysSpan} ${if (isEn) "active days" else "Tage aktiv"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+
+                    // 2x2 Grid: Ø pro Tag, Ø pro Woche, Ø pro Monat, Ø pro Jahr (Ohne Diagramm)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         StatCard(
                             title = if (isEn) "Ø per Day" else "Ø pro Tag",
                             value = statistics.dailyAverage,
-                            subtitle = if (isEn) "over ${statistics.daysSpan} days" else "über ${statistics.daysSpan} Tage",
+                            subtitle = if (isEn) "over ${statistics.daysSpan} days" else "auf ${statistics.daysSpan} Tage",
                             icon = Icons.Default.CalendarToday,
                             accentColor = Color(0xFF2196F3),
                             modifier = Modifier.weight(1f)
@@ -258,12 +563,12 @@ fun StatisticsScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         StatCard(
                             title = if (isEn) "Ø per Month" else "Ø pro Monat",
                             value = statistics.monthlyAverage,
-                            subtitle = if (isEn) "Monthly average" else "Monatsdurchschnitt",
+                            subtitle = if (isEn) "Monthly average" else "Monatsschnitt",
                             icon = Icons.Default.CalendarMonth,
                             accentColor = Color(0xFFFF9800),
                             modifier = Modifier.weight(1f)
@@ -271,81 +576,12 @@ fun StatisticsScreen(
                         StatCard(
                             title = if (isEn) "Ø per Year" else "Ø pro Jahr",
                             value = statistics.yearlyAverage,
-                            subtitle = if (isEn) "Yearly average" else "Jahresdurchschnitt",
+                            subtitle = if (isEn) "Yearly average" else "Jahresschnitt",
                             icon = Icons.Default.Timeline,
                             accentColor = Color(0xFF9C27B0),
                             modifier = Modifier.weight(1f)
                         )
                     }
-                }
-            }
-
-            // SPAR-KI BANNER
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isEn) "Save-AI & Coach Active" else "Spar-KI & Frust-Coach aktiv",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (isEn) "Detailed impulse buy analyses & World Bank compound interest in 'Save-AI' tab."
-                                else "Detaillierte Frustkauf-Analysen & Weltbank-Zinseszins im Tab 'Spar-KI'.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
-                }
-            }
-
-            // KUCHENDIAGRAMM
-            if (statistics.categoryStats.isNotEmpty()) {
-                item {
-                    CategoryPieChart(
-                        categoryStats = statistics.categoryStats,
-                        selectedScope = chartScope,
-                        onScopeSelected = { viewModel.setChartScope(it) },
-                        isEn = isEn
-                    )
-                }
-            }
-
-            // Bar Chart of recent days
-            if (statistics.recentDaysStats.isNotEmpty()) {
-                item {
-                    ExpensesBarChart(
-                        daysStats = statistics.recentDaysStats,
-                        isEn = isEn
-                    )
                 }
             }
 
@@ -375,8 +611,10 @@ fun StatisticsScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
                         )
                     ) {
                         Row(
@@ -387,9 +625,9 @@ fun StatisticsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -398,7 +636,7 @@ fun StatisticsScreen(
                                     tint = MaterialTheme.colorScheme.secondary
                                 )
                             }
-                            Spacer(modifier = Modifier.width(14.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = if (isEn) "Highest Single Expense" else "Höchste Einzelausgabe",
@@ -445,437 +683,97 @@ fun StatisticsScreen(
     }
 }
 
-/**
- * Android AICore Frustkauf-Analyse & Einsparpotenziale
- */
-@Composable
-fun AiFrustrationCard(
-    report: AiFrustrationReport,
-    currencyFormat: NumberFormat
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            // Header mit Android AICore Badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Psychology,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "Android AICore Analyse",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Frustkäufe & Einsparpotenziale",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
+private fun buildDailyStatsForPeriod(
+    expenses: List<Expense>,
+    periodMode: StatPeriodMode,
+    selectedYear: Int,
+    selectedMonthIndex: Int,
+    activeYearForMonth: Int,
+    isEn: Boolean
+): List<DayStat> {
+    if (expenses.isEmpty()) return emptyList()
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "AICore on-device",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
+    val locale = if (isEn) Locale.US else Locale.GERMAN
+    val dayKeyFormat = SimpleDateFormat("yyyyMMdd", locale)
+    val shortDateFormat = SimpleDateFormat("dd.MM.", locale)
+    val dayOfWeekFormat = SimpleDateFormat("EEE", locale)
 
-            Spacer(modifier = Modifier.height(14.dp))
+    val expensesByDayKey = expenses.groupBy { dayKeyFormat.format(Date(it.date)) }
 
-            if (report.hasFrustrationPurchases) {
-                // Kennzahlen-Box
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Frust- & Impulskosten",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                text = "${currencyFormat.format(report.totalFrustrationAmount)} €",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                text = "${report.frustrationCount} Fehl- / Impulskäufe erfasst",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
-                            )
-                        }
+    val startCal = Calendar.getInstance()
+    val endCal = Calendar.getInstance()
 
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "Jahres-Sparpotenzial",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            Text(
-                                text = "≈ ${currencyFormat.format(report.projectedAnnualSavings)} €",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF16A34A)
-                            )
-                            if (report.primaryTriggerEmotion != null) {
-                                Text(
-                                    text = "Hauptauslöser: ${report.primaryTriggerEmotion}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                        }
-                    }
-                }
+    when (periodMode) {
+        StatPeriodMode.TODAY -> {
+            startCal.set(Calendar.HOUR_OF_DAY, 0)
+            startCal.set(Calendar.MINUTE, 0)
+            startCal.set(Calendar.SECOND, 0)
+            startCal.set(Calendar.MILLISECOND, 0)
+            endCal.timeInMillis = startCal.timeInMillis
+        }
+        StatPeriodMode.THIS_WEEK -> {
+            startCal.firstDayOfWeek = Calendar.MONDAY
+            startCal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            startCal.set(Calendar.HOUR_OF_DAY, 0)
+            startCal.set(Calendar.MINUTE, 0)
+            startCal.set(Calendar.SECOND, 0)
+            startCal.set(Calendar.MILLISECOND, 0)
+            endCal.timeInMillis = startCal.timeInMillis
+            endCal.add(Calendar.DAY_OF_YEAR, 6)
+        }
+        StatPeriodMode.SPECIFIC_MONTH -> {
+            val mIdx = if (selectedMonthIndex in 0..11) selectedMonthIndex else startCal.get(Calendar.MONTH)
+            startCal.set(Calendar.YEAR, activeYearForMonth)
+            startCal.set(Calendar.MONTH, mIdx)
+            startCal.set(Calendar.DAY_OF_MONTH, 1)
+            startCal.set(Calendar.HOUR_OF_DAY, 0)
+            startCal.set(Calendar.MINUTE, 0)
+            startCal.set(Calendar.SECOND, 0)
+            startCal.set(Calendar.MILLISECOND, 0)
 
-                Spacer(modifier = Modifier.height(12.dp))
+            val maxDay = startCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+            endCal.timeInMillis = startCal.timeInMillis
+            endCal.set(Calendar.DAY_OF_MONTH, maxDay)
+        }
+        StatPeriodMode.YEAR_TO_DATE,
+        StatPeriodMode.SPECIFIC_YEAR,
+        StatPeriodMode.ALL_TIME -> {
+            val minDate = expenses.minOf { it.date }
+            val maxDate = max(expenses.maxOf { it.date }, System.currentTimeMillis())
+            startCal.timeInMillis = minDate
+            startCal.set(Calendar.HOUR_OF_DAY, 0)
+            startCal.set(Calendar.MINUTE, 0)
+            startCal.set(Calendar.SECOND, 0)
+            startCal.set(Calendar.MILLISECOND, 0)
 
-                // AI Insight Headline & Detail
-                Text(
-                    text = report.aiInsightHeadline,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = report.aiDetailedAdvice,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Konkrete AICore Strategien
-                Text(
-                    text = "Konkrete Vorbeugungs-Strategien:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                report.actionableTips.forEach { tip ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 3.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF16A34A),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .padding(top = 2.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = tip,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp)
-                    ) {
-                        Text(
-                            text = report.aiInsightHeadline,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF16A34A)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = report.aiDetailedAdvice,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            endCal.timeInMillis = maxDate
+            endCal.set(Calendar.HOUR_OF_DAY, 0)
+            endCal.set(Calendar.MINUTE, 0)
+            endCal.set(Calendar.SECOND, 0)
+            endCal.set(Calendar.MILLISECOND, 0)
         }
     }
-}
 
-/**
- * Weltbank & Zinseszins Opportunitätskosten-Rechner ("Was wäre wenn?")
- */
-@Composable
-fun WorldBankOpportunityCard(
-    insights: List<AiOpportunityInsight>,
-    inflationRate: Double,
-    currencyFormat: NumberFormat
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            Color(0xFF0284C7).copy(alpha = 0.3f)
+    val result = ArrayList<DayStat>()
+    val iterCal = Calendar.getInstance().apply { timeInMillis = startCal.timeInMillis }
+    var safetyCounter = 0
+
+    while (!iterCal.after(endCal) && safetyCounter < 730) {
+        val key = dayKeyFormat.format(iterCal.time)
+        val dayTotal = expensesByDayKey[key]?.sumOf { it.amount } ?: 0.0
+        result.add(
+            DayStat(
+                dateLabel = shortDateFormat.format(iterCal.time),
+                dayOfWeek = dayOfWeekFormat.format(iterCal.time),
+                timestamp = iterCal.timeInMillis,
+                totalAmount = dayTotal
+            )
         )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TrendingUp,
-                            contentDescription = null,
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "Zinseszins & Inflation",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Weltbank API & Opportunitätskosten",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF0284C7).copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = "DEU ${String.format(Locale.GERMAN, "%.2f", inflationRate)} % Inf.",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0284C7)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Was wäre, wenn du deine Konsum- und Spontanausgaben stattdessen mit 7 % p.a. angelegt hättest?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            insights.forEach { insight ->
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp)
-                    ) {
-                        // Header des Eintrags mit ursprünglichem Betrag
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = insight.headline,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Text(
-                                    text = "Heute: ${currencyFormat.format(insight.originalCost)} €",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Das originelle, kreative KI-Zitat (z.B. "Dieser Kaffee kostet dich in 30 Jahren umgerechnet 24,50 €...")
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Lightbulb,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .size(18.dp)
-                                        .padding(top = 1.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "„${insight.creativeSentence}“",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontStyle = FontStyle.Italic,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Zukunfts-Vergleichsdaten
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = "In ${insight.years} Jahren (Nominal)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = "${currencyFormat.format(insight.futureNominalAmount)} €",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF16A34A)
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "Kaufkraft (inflationsbereinigt)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Text(
-                                    text = "≈ ${currencyFormat.format(insight.futureRealAmount)} €",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = insight.alternativeScenario,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "💡 Datenbasis: Weltbank Open Data API (DEU FP.CPI.TOTL.ZG) • 7 % p.a. durchschnittliche historische ETF-Rendite.",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
+        iterCal.add(Calendar.DAY_OF_YEAR, 1)
+        safetyCounter++
     }
+
+    return result
 }
 
 @Composable
@@ -887,8 +785,10 @@ fun CategoryStatItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         )
     ) {
         Column(
@@ -921,7 +821,7 @@ fun CategoryStatItem(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = String.format(Locale.GERMAN, "%.1f %%", catStat.percentage),
+                        text = String.format(if (isEn) Locale.US else Locale.GERMAN, "%.1f %%", catStat.percentage),
                         style = MaterialTheme.typography.labelSmall,
                         color = catStat.category.color,
                         fontWeight = FontWeight.Bold
