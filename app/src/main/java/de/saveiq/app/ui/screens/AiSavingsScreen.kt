@@ -168,7 +168,7 @@ fun AiSavingsScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 120.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // TOP HEADER (Ohne AI-Core Zeichen)
